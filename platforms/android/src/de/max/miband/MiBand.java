@@ -89,6 +89,7 @@ public class MiBand {
                                             @Override
                                             public void onFail(int errorCode, String msg) {
                                                 Log.e(TAG, "Set Fitness Goal failed");
+                                                disconnect();
                                             }
                                         });
                                     }
@@ -96,6 +97,7 @@ public class MiBand {
                                     @Override
                                     public void onFail(int errorCode, String msg) {
                                         Log.e(TAG, "Error reading Date: " + msg);
+                                        disconnect();
                                     }
                                 });
                             }
@@ -103,6 +105,7 @@ public class MiBand {
                             @Override
                             public void onFail(int errorCode, String msg) {
                                 Log.e(TAG, "Error setting Date: " + msg);
+                                disconnect();
                             }
                         });
                     }
@@ -181,6 +184,29 @@ public class MiBand {
         };
 
         MiBand.io.readCharacteristic(Profile.UUID_CHAR_DATA_TIME, ioCallback);
+    }
+
+
+    public void readCurrentStepCount(final ActionCallback callback){
+        checkConnection();
+
+        ActionCallback ioCallback = new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
+                byte[] value = characteristic.getValue();
+                int steps = 0xff & value[0] | (0xff & value[1]) << 8;
+                Log.d(TAG, "getCurrentStepCount result " +steps);
+                callback.onSuccess(steps);
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                callback.onFail(errorCode, msg);
+            }
+        };
+
+        MiBand.io.readCharacteristic(Profile.UUID_CHAR_REALTIME_STEPS, ioCallback);
     }
 
 

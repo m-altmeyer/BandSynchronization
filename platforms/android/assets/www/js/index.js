@@ -128,6 +128,19 @@ function getCurrentStepCount(){
     });
 }
 
+function testMiBand(){
+    setLoading(true);
+    if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
+    window.testBand(function(data){
+        alert(data);
+        setLoading(false);
+    }, function(error){
+        out=error.msg;
+        setLoading(false);
+        updateView();
+    });
+}
+
 document.getElementById("connectBtn").addEventListener("click", connect);
-//document.getElementById("liveBtn").addEventListener("click", getCurrentStepCount);
+document.getElementById("liveBtn").addEventListener("click", getCurrentStepCount);
 document.getElementById("syncBtn").addEventListener("click", synchronizeBandNow);

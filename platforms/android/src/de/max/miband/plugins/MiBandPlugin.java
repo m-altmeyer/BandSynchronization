@@ -197,16 +197,18 @@ public class MiBandPlugin extends CordovaPlugin {
                 public void run() {
                     Log.d(TAG, "GET LIVE STEPCOUNT CALLED");
                     if (miBand.isConnected()) {
-                        miBand.setRealtimeStepsNotifyListener(new RealtimeStepsNotifyListener() {
+                        miBand.readCurrentStepCount(new ActionCallback() {
                             @Override
-                            public void onNotify(int steps)
-                            {
-                                Log.d(TAG, "RealtimeStepsNotifyListener:" + steps);
+                            public void onSuccess(Object data) {
+                                int steps= (int) data;
                                 sendResult(callbackContext, Integer.toString(steps), true);
                             }
-                        });
 
-                        miBand.enableRealtimeStepsNotify();
+                            @Override
+                            public void onFail(int errorCode, String msg) {
+                                sendResult(callbackContext, "Read live step count failed", false);
+                            }
+                        });
                     } else {
                         sendResult(callbackContext, "Mi Band is not connected", false);
                     }
@@ -229,6 +231,7 @@ public class MiBandPlugin extends CordovaPlugin {
             });
             return true;
         }
+
         return false;
     }
 }
