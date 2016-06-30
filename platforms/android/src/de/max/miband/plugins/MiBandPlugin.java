@@ -21,6 +21,7 @@ import de.max.miband.ActionCallback;
 import de.max.miband.DateUtils;
 import de.max.miband.MiBand;
 import de.max.miband.RealtimeStepsNotifyListener;
+import de.max.miband.model.BatteryInfo;
 import de.max.miband.models.ActivityData;
 import de.max.miband.sqlite.ActivitySQLite;
 
@@ -200,13 +201,39 @@ public class MiBandPlugin extends CordovaPlugin {
                         miBand.readCurrentStepCount(new ActionCallback() {
                             @Override
                             public void onSuccess(Object data) {
-                                int steps= (int) data;
+                                int steps = (int) data;
                                 sendResult(callbackContext, Integer.toString(steps), true);
                             }
 
                             @Override
                             public void onFail(int errorCode, String msg) {
                                 sendResult(callbackContext, "Read live step count failed", false);
+                            }
+                        });
+                    } else {
+                        sendResult(callbackContext, "Mi Band is not connected", false);
+                    }
+                }
+            });
+            return true;
+        }
+
+        if (action.equals("getBatteryInfo")) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    Log.d(TAG, "GET BATTERY INFO CALLED");
+                    if (miBand.isConnected()) {
+                        miBand.getBatteryInfo(new ActionCallback() {
+                            @Override
+                            public void onSuccess(final Object data) {
+                                BatteryInfo battery = (BatteryInfo) data;
+                                //get the cycle count, the level and other information
+                                sendResult(callbackContext, battery.toString(), true);
+                            }
+
+                            @Override
+                            public void onFail(int errorCode, String msg) {
+                                sendResult(callbackContext, msg, false);
                             }
                         });
                     } else {

@@ -22,14 +22,17 @@
      cordova.exec(onSuccess,onError, "MiBandPlugin", "synchronizeBand", []);
  };
 
-  window.connectBand = function(onSuccess, onError) {
+ window.connectBand = function(onSuccess, onError) {
       cordova.exec(onSuccess,onError, "MiBandPlugin", "connectBand", []);
-  };
+ };
 
-  window.getLiveStepCount = function(onSuccess, onError) {
-        cordova.exec(onSuccess,onError, "MiBandPlugin", "getLiveStepCount", []);
-    };
+ window.getLiveStepCount = function(onSuccess, onError) {
+      cordova.exec(onSuccess,onError, "MiBandPlugin", "getLiveStepCount", []);
+ };
 
+ window.getBatteryInfo=function(onSuccess, onError) {
+     cordova.exec(onSuccess,onError, "MiBandPlugin", "getBatteryInfo", []);
+ };
 
 
 var app = {
@@ -128,12 +131,13 @@ function getCurrentStepCount(){
     });
 }
 
-function testMiBand(){
+function getBatteryInfos(){
     setLoading(true);
     if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
-    window.testBand(function(data){
-        alert(data);
+    window.getBatteryInfo(function(data){
+        out="Get Battery successfully completed: "+data.msg;
         setLoading(false);
+        updateView();
     }, function(error){
         out=error.msg;
         setLoading(false);
@@ -144,3 +148,4 @@ function testMiBand(){
 document.getElementById("connectBtn").addEventListener("click", connect);
 document.getElementById("liveBtn").addEventListener("click", getCurrentStepCount);
 document.getElementById("syncBtn").addEventListener("click", synchronizeBandNow);
+document.getElementById("getBatBtn").addEventListener("click", getBatteryInfos);
