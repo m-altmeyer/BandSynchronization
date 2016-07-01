@@ -194,6 +194,7 @@ public class BTCommandManager {
             return this.gatt.readCharacteristic(chara);
         } catch (Throwable tr) {
             Log.e(TAG, "readCharacteristic", tr);
+            onFail(333, "read Characteristic fail");
             return false;
         }
     }
@@ -393,21 +394,28 @@ public class BTCommandManager {
     private ActivityStruct activityStruct;
 
     public void handleActivityNotif(byte[] value) {
-        boolean firstChunk = activityStruct == null;
-        if (firstChunk) {
-            activityStruct = new ActivityStruct(3*60*4);
+        try{
+            boolean firstChunk = activityStruct == null;
+            if (firstChunk) {
+                activityStruct = new ActivityStruct(3*60*4);
+            }
+
+            if (value.length == 11) {
+                handleActivityMetadata(value);
+            } else {
+                bufferActivityData(value);
+            }
+        }finally {
+            if (activityStruct!=null) {
+                if (activityStruct.isBlockFinished()) {
+                    sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
+                }
+            }
         }
 
-        if (value.length == 11) {
-            handleActivityMetadata(value);
-        } else {
-            bufferActivityData(value);
-        }
         //Log.d(TAG, "activity data: length: " + value.length + ", remaining bytes: " + activityStruct.activityDataRemainingBytes);
 
-        if (activityStruct.isBlockFinished()) {
-            sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
-        }
+
     }
 
     private void handleActivityMetadata(byte[] value) {
@@ -444,24 +452,10 @@ public class BTCommandManager {
 
 
     private void bufferActivityData(byte[] value) {
-/*
-        if (scheduledTask != null) {
-            scheduledTask.cancel(true);
-        }
-*/
         if (activityStruct.hasRoomFor(value)) {
             if (activityStruct.isValidData(value)) {
                 activityStruct.buffer(value);
 
-/*                scheduledTask = scheduleTaskExecutor.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        GB.toast(getContext(), "chiederei " + activityStruct.activityDataTimestampToAck + "   "+ activityStruct.activityDataUntilNextHeader, Toast.LENGTH_LONG, GB.ERROR);
-                        //sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
-                        LOG.debug("runnable called");
-                    }
-                }, 10l, TimeUnit.SECONDS);
-*/
                 if (activityStruct.isBufferFull()) {
                     flushActivityDataHolder();
                 }
@@ -472,14 +466,16 @@ public class BTCommandManager {
         } else {
             Log.e(TAG, "error buffering activity data: remaining bytes: " + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
             try {
+                /*
                 final List<BLEAction> list = new ArrayList<>();
                 list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT,Protocol.COMMAND_STOP_SYNC_DATA ));
                 final BLETask task = new BLETask(list);
                 queueTask(task);
-
+                */
+                onFail(333,"error buffering activity data: remaining bytes:" + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
                 handleActivityFetchFinish();
-
-            } catch (IOException e) {
+            } catch (Exception e) {
+                onFail(333, "error stopping activity sync");
                 Log.e(TAG, "error stopping activity sync", e);
             }
         }
@@ -544,9 +540,6 @@ public class BTCommandManager {
 
         try {
             queueTask(task);
-        } catch (NullPointerException e) {
-
-        } finally {
             // flush to the DB after sending the ACK
             flushActivityDataHolder();
 
@@ -571,6 +564,10 @@ public class BTCommandManager {
                 activityStruct = null;
                 onSuccess("sync complete");
             }
+        }catch (Exception ex) {
+            ex.printStackTrace();
+            onFail(333, "Unable to send ack to MI");
+            Log.e(TAG,"Unable to send ack to MI");
         }
     }
 }
