@@ -36,7 +36,7 @@ public class ActivitySQLite {
         this.context = context;
     }
 
-    public boolean saveActivity(int timestamp, byte provider, short intensity, byte steps, byte type) {
+    public boolean saveActivity(int timestamp, byte provider, short intensity, int steps, byte type) {
         MasterSQLiteHelper helperDB = new MasterSQLiteHelper(context);
         SQLiteDatabase db = helperDB.getWritableDatabase();
 
@@ -48,6 +48,8 @@ public class ActivitySQLite {
         cv.put("intensity", intensity);
         cv.put("steps", steps);
         cv.put("type", type);
+
+        Log.d(TAG, "INSERTED STEPS::::::::::::"+Integer.toString(steps));
 
         if (db.insert(TABLE_NAME, null, cv) != -1) {
             Log.e(TAG, "Activity " + timestamp + " SUCCESS INSERTING DATA");

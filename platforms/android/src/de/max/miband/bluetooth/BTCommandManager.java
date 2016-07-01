@@ -492,14 +492,15 @@ public class BTCommandManager {
             return;
         }
 
-        byte category, intensity, steps;
+        byte category, intensity;
+        int steps;
 
         ActivitySQLite dbHandler = ActivitySQLite.getInstance(context);
 
         for (int i = 0; i < activityStruct.activityDataHolderProgress; i += 3) { //TODO: check if multiple of 3, if not something is wrong
             category = activityStruct.activityDataHolder[i];
             intensity = activityStruct.activityDataHolder[i + 1];
-            steps = activityStruct.activityDataHolder[i + 2];
+            steps = activityStruct.activityDataHolder[i + 2] & 0xff;
 
             dbHandler.saveActivity((int) (activityStruct.activityDataTimestampProgress.getTimeInMillis() / 1000),
                     ActivityData.PROVIDER_MIBAND,
