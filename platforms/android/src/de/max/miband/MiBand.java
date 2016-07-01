@@ -34,7 +34,7 @@ import java.util.List;
 
 public class MiBand {
 
-    private static final String TAG = "FitAsAFiddleService";
+    private static final String TAG = "MiBand";
     private static Context context;
     private static String address;
     private static BTCommandManager io;
@@ -42,13 +42,13 @@ public class MiBand {
     private static MiBandWrapper miBandWrapper;
     private static Intent miBandService;
     private static BTConnectionManager btConnectionManager;
-    private boolean currentlySynching=false;
+    private boolean currentlySynching = false;
     private ActionCallback connectionCallback;
     private ActionCallback currentSynchCallback;
 
     public MiBand(final Context context, final String address) {
         MiBand.context = context;
-        MiBand.address=address;
+        MiBand.address = address;
         MiBand.miBandWrapper = MiBandWrapper.getInstance(context);
 
         ActionCallback myConnectionCallback = new ActionCallback() {
@@ -123,7 +123,6 @@ public class MiBand {
             }
 
 
-
             @Override
             public void onFail(int errorCode, String msg) {
                 Log.e(TAG, "Fail: " + msg);
@@ -153,20 +152,20 @@ public class MiBand {
         return currentlySynching;
     }
 
-    public void setFitnessGoal (int fitnessGoal, final ActionCallback callback){
+    public void setFitnessGoal(int fitnessGoal, final ActionCallback callback) {
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, new byte[]{
                 Protocol.COMMAND_SET_FITNESS_GOAL,
                 0,
                 (byte) (fitnessGoal & 0xff),
                 (byte) ((fitnessGoal >>> 8) & 0xff)
-        },callback));
+        }, callback));
 
         queue(list);
     }
 
 
-    public void readDate(final ActionCallback callback){
+    public void readDate(final ActionCallback callback) {
         checkConnection();
 
         ActionCallback ioCallback = new ActionCallback() {
@@ -187,7 +186,7 @@ public class MiBand {
     }
 
 
-    public void readCurrentStepCount(final ActionCallback callback){
+    public void readCurrentStepCount(final ActionCallback callback) {
         checkConnection();
 
         ActionCallback ioCallback = new ActionCallback() {
@@ -196,7 +195,7 @@ public class MiBand {
                 BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
                 byte[] value = characteristic.getValue();
                 int steps = 0xff & value[0] | (0xff & value[1]) << 8;
-                Log.d(TAG, "getCurrentStepCount result " +steps);
+                Log.d(TAG, "getCurrentStepCount result " + steps);
                 callback.onSuccess(steps);
             }
 
@@ -210,7 +209,7 @@ public class MiBand {
     }
 
 
-    public void setHighLatency(){
+    public void setHighLatency() {
         //Set to High Latency again
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getHighLatency()));
@@ -218,7 +217,7 @@ public class MiBand {
         Log.d(TAG, "Setting High Latency Mode");
     }
 
-    public void setLowLatency(){
+    public void setLowLatency() {
         //Set to High Latency again
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getLowLatency()));
@@ -228,12 +227,11 @@ public class MiBand {
 
     /**
      * Sets the current time to the Mi device.
-     *
      */
     private void setCurrentTime(ActionCallback callback) {
         Calendar now = GregorianCalendar.getInstance();
         Date date = now.getTime();
-        Log.d(TAG,"Sending current time to Mi Band: " + date + " (" + date.toGMTString() + ")");
+        Log.d(TAG, "Sending current time to Mi Band: " + date + " (" + date.toGMTString() + ")");
         byte[] nowBytes = MiBandDateConverter.calendarToRawBytes(now);
         byte[] time = new byte[]{
                 nowBytes[0],
@@ -251,7 +249,7 @@ public class MiBand {
         };
 
         final List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_DATA_TIME, time,callback));
+        list.add(new WriteAction(Profile.UUID_CHAR_DATA_TIME, time, callback));
         queue(list);
         Log.d(TAG, "Date set.");
     }
@@ -263,18 +261,38 @@ public class MiBand {
         btConnectionManager.disconnect();
     }
 
+    public void setSensorDataNotifyListener(final NotifyListener listener) {
+        this.io.setNotifyListener(Profile.UUID_CHAR_SENSOR_DATA, new NotifyListener() {
+            @Override
+            public void onNotify(byte[] data) {
+                listener.onNotify(data);
+            }
+        });
+    }
+
+    public void enableSensorDataNotify(ActionCallback callback) {
+        checkConnection();
+        final List<BLEAction> list = new ArrayList<>();
+        list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.ENABLE_SENSOR_DATA_NOTIFY, callback));
+        queue(list);
+    }
+
+    public void disableSensorDataNotify(ActionCallback callback) {
+        checkConnection();
+        final List<BLEAction> list = new ArrayList<>();
+        list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.DISABLE_SENSOR_DATA_NOTIFY, callback));
+        queue(list);
+    }
+
     public void setRealtimeStepsNotifyListener(final RealtimeStepsNotifyListener listener) {
         checkConnection();
 
         MiBand.io.setNotifyListener(Profile.UUID_CHAR_REALTIME_STEPS, new NotifyListener() {
-
             @Override
             public void onNotify(byte[] data) {
                 Log.d(TAG, Arrays.toString(data));
-                if (data.length == 4) {
-                    int steps = data[3] << 24 | (data[2] & 0xFF) << 16 | (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
-                    listener.onNotify(steps);
-                }
+                int steps = 0xff & data[0] | (0xff & data[1]) << 8;
+                listener.onNotify(steps);
             }
         });
     }
@@ -282,15 +300,12 @@ public class MiBand {
     /**
      * Starts listening to step count in real time
      */
-    public void enableRealtimeStepsNotify() {
+    public void enableRealtimeStepsNotify(ActionCallback callback) {
         checkConnection();
-        btConnectionManager.enableRealtimeSteps(true);
-        //MiBand.io.writeCharacteristic(Profile.UUID_CHAR_CONTROL_POINT, Protocol.ENABLE_REALTIME_STEPS_NOTIFY, null);
+        //btConnectionManager.enableRealtimeNotifications(true);
 
         final List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.ENABLE_REALTIME_STEPS_NOTIFY));
-
-        final BLETask task = new BLETask(list);
+        list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.ENABLE_REALTIME_STEPS_NOTIFY, callback));
 
         queue(list);
     }
@@ -298,13 +313,11 @@ public class MiBand {
     /**
      * Stops listening to step count in real time
      */
-    public void disableRealtimeStepsNotify() {
+    public void disableRealtimeStepsNotify(ActionCallback callback) {
         checkConnection();
 
-        //MiBand.io.writeCharacteristic(Profile.UUID_CHAR_CONTROL_POINT, Protocol.DISABLE_REALTIME_STEPS_NOTIFY, null);
-
         final List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.DISABLE_REALTIME_STEPS_NOTIFY));
+        list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.DISABLE_REALTIME_STEPS_NOTIFY, callback));
 
         queue(list);
     }
@@ -333,9 +346,9 @@ public class MiBand {
 
     public String getAddress() {
         if (!isConnected()) {
-           return "";
+            return "";
         } else {
-           return btConnectionManager.getDevice().getAddress();
+            return btConnectionManager.getDevice().getAddress();
         }
     }
 
@@ -374,7 +387,7 @@ public class MiBand {
                 if (characteristic.getValue().length == 1 && characteristic.getValue()[0] == 2) {
                     Log.d(TAG, "Pairing success!");
 
-                    setUserInfo(UserInfo.getDefault(getAddress()),null);
+                    setUserInfo(UserInfo.getDefault(getAddress()), null);
 
                     //setUserInfo(null);
                     if (connectionCallback != null)
@@ -434,7 +447,6 @@ public class MiBand {
     }
 
 
-
     /**
      * Vibrate "times" times. Each iteration will start vibrator "on_time" milliseconds (up to 500, will be truncated if larger), and then stop it "off_time" milliseconds (no limit here).
      *
@@ -457,7 +469,6 @@ public class MiBand {
 
         queue(list);
     }
-
 
 
     /**
@@ -626,7 +637,7 @@ public class MiBand {
         }
 
         final List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_USER_INFO, userInfo.getData(),callback));
+        list.add(new WriteAction(Profile.UUID_CHAR_USER_INFO, userInfo.getData(), callback));
 
         queue(list);
     }
@@ -658,9 +669,9 @@ public class MiBand {
         checkConnection();
         btConnectionManager.enableSynchronization(true);
 
-        currentlySynching=true;
+        currentlySynching = true;
         Log.d(TAG, "Synching running....");
-        currentSynchCallback=actionCallback;
+        currentSynchCallback = actionCallback;
 
         final List<BLEAction> list = new ArrayList<>();
 
@@ -668,7 +679,7 @@ public class MiBand {
             @Override
             public void onSuccess(Object data) {
                 Log.d(TAG, "Set MiBand to Low Latency Mode");
-                currentSynchCallback=actionCallback;
+                currentSynchCallback = actionCallback;
 
                 final List<BLEAction> list2 = new ArrayList<>();
                 list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.FETCH_DATA, new ActionCallback() {
@@ -696,7 +707,7 @@ public class MiBand {
                     @Override
                     public void onFail(int errorCode, String msg) {
                         currentlySynching = false;
-                        actionCallback.onFail(errorCode,msg);
+                        actionCallback.onFail(errorCode, msg);
                         Log.d(TAG, "Synching stopped (ERR).");
                     }
                 }));

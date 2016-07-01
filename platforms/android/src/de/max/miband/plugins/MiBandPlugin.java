@@ -20,6 +20,7 @@ import java.util.Set;
 import de.max.miband.ActionCallback;
 import de.max.miband.DateUtils;
 import de.max.miband.MiBand;
+import de.max.miband.NotifyListener;
 import de.max.miband.RealtimeStepsNotifyListener;
 import de.max.miband.model.BatteryInfo;
 import de.max.miband.models.ActivityData;
@@ -188,6 +189,116 @@ public class MiBandPlugin extends CordovaPlugin {
                         }
 
                     }
+                }
+            });
+            return true;
+        }
+
+        if (action.equals("enableSensorDataNotify")) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    Log.d(TAG, "GET LIVE SENSOR CALLED");
+                    miBand.setSensorDataNotifyListener(new NotifyListener() {
+                        @Override
+                        public void onNotify(byte[] data) {
+                            int counter=0, step=0, axis1=0, axis2=0, axis3 =0;
+                            if((data.length - 2) % 6 != 0) {
+                                Log.e(TAG,"GOT UNEXPECTED SENSOR DATA WITH LENGTH: " + data.length);
+                                for (byte b : data) {
+                                    Log.e(TAG,"DATA: " + String.format("0x%4x", b));
+                                }
+                            } else {
+                                counter = (data[0] & 0xff) | ((data[1] & 0xff) << 8);
+                                for (int idx = 0; idx < ((data.length - 2) / 6); idx++) {
+                                    step = idx * 6;
+                                    axis1 = (data[step+2] & 0xff) | ((data[step+3] & 0xff) << 8);
+                                    axis2 = (data[step+4] & 0xff) | ((data[step+5] & 0xff) << 8);
+                                    axis3 = (data[step+6] & 0xff) | ((data[step+7] & 0xff) << 8);
+                                }
+
+                                String msg="a1:"+Integer.toString(axis1)+" | a2:"+Integer.toString(axis2)+" | a3:"+Integer.toString(axis3)+";";
+                                Log.d(TAG,msg);
+                                sendResult(callbackContext, msg, true);
+                            }
+                        }
+                    });
+                    miBand.enableSensorDataNotify(new ActionCallback() {
+                        @Override
+                        public void onSuccess(Object data) {
+                            sendResult(callbackContext, "Enable Realtime Sensor succeeded", true);
+                        }
+
+                        @Override
+                        public void onFail(int errorCode, String msg) {
+                            sendResult(callbackContext, "Enable Realtime Sensor failed", false);
+                        }
+                    });
+                }
+            });
+            return true;
+        }
+
+        if (action.equals("disableSensorDataNotify")) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    Log.d(TAG, "DISABLE LIVE SENSOR CALLED");
+                    miBand.disableSensorDataNotify(new ActionCallback() {
+                        @Override
+                        public void onSuccess(Object data) {
+                            sendResult(callbackContext, "Disable Realtime Sensor succeeded", true);
+                        }
+
+                        @Override
+                        public void onFail(int errorCode, String msg) {
+                            sendResult(callbackContext, "Disable Realtime Sensor failed", false);
+                        }
+                    });
+                }
+            });
+            return true;
+        }
+
+        if (action.equals("enableLiveStepsNotify")) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    Log.d(TAG, "GET LIVE STEPS CALLED");
+                    miBand.setRealtimeStepsNotifyListener(new RealtimeStepsNotifyListener() {
+                        @Override
+                        public void onNotify(int steps) {
+                            sendResult(callbackContext, Integer.toString(steps), true);
+                        }
+                    });
+                    miBand.enableRealtimeStepsNotify(new ActionCallback() {
+                        @Override
+                        public void onSuccess(Object data) {
+                            sendResult(callbackContext, "Enable Realtime Steps succeeded", true);
+                        }
+
+                        @Override
+                        public void onFail(int errorCode, String msg) {
+                            sendResult(callbackContext, "Enable Realtime Steps failed", false);
+                        }
+                    });
+                }
+            });
+            return true;
+        }
+
+        if (action.equals("disableLiveStepsNotify")) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    Log.d(TAG, "DISABLE LIVE STEPS CALLED");
+                    miBand.disableRealtimeStepsNotify(new ActionCallback() {
+                        @Override
+                        public void onSuccess(Object data) {
+                            sendResult(callbackContext, "Disable Realtime Steps succeeded", true);
+                        }
+
+                        @Override
+                        public void onFail(int errorCode, String msg) {
+                            sendResult(callbackContext, "Disable Realtime Steps failed", false);
+                        }
+                    });
                 }
             });
             return true;

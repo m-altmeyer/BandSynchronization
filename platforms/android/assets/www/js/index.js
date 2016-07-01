@@ -34,6 +34,23 @@
      cordova.exec(onSuccess,onError, "MiBandPlugin", "getBatteryInfo", []);
  };
 
+window.enableSensorDataNotify=function(onSuccess, onError){
+     cordova.exec(onSuccess, onError, "MiBandPlugin", "enableSensorDataNotify", []);
+}
+
+window.disableSensorDataNotify=function(onSuccess, onError){
+     cordova.exec(onSuccess, onError, "MiBandPlugin", "disableSensorDataNotify", []);
+}
+
+window.enableLiveStepsNotify=function(onSuccess, onError){
+     cordova.exec(onSuccess, onError, "MiBandPlugin", "enableLiveStepsNotify", []);
+}
+
+window.disableLiveStepsNotify=function(onSuccess, onError){
+     cordova.exec(onSuccess, onError, "MiBandPlugin", "disableLiveStepsNotify", []);
+}
+
+
 
 var app = {
     // Application Constructor
@@ -74,7 +91,7 @@ function updateView(){
         document.getElementById("connectionStatus").innerHTML="<b style='color:red'>NICHT VERBUNDEN</b>";
     }
 
-    document.getElementById("out").innerHTML=document.getElementById("out").innerHTML+"<br><br>"+out;
+    document.getElementById("out").innerHTML=out+"<br><br>"+document.getElementById("out").innerHTML;
     document.getElementById("steps").innerHTML=steps;
 }
 
@@ -145,7 +162,64 @@ function getBatteryInfos(){
     });
 }
 
+function getLiveSensor(){
+    if (!connected){alert("Nicht verbunden!");return;}
+    window.enableSensorDataNotify(function(data){
+        out=data.msg;
+        updateView();
+    }, function(error){
+         out=error.msg;
+         updateView();
+    });
+}
+
+function stopLiveSensor(){
+    if (!connected){alert("Nicht verbunden!");return;}
+    window.disableSensorDataNotify(function(data){
+        out=out+"Disabled Live Sensor Data";
+        out=data.msg;
+        updateView();
+    }, function(error){
+         out=error.msg;
+         updateView();
+    });
+}
+
+function getLiveSteps(){
+    if (!connected){alert("Nicht verbunden!");return;}
+    window.enableLiveStepsNotify(function(data){
+    if (!isNaN(parseInt(data.msg))){
+        steps=data.msg;
+        }
+        else{out=data.msg;}
+
+        updateView();
+
+    }, function(error){
+         out=error.msg;
+         updateView();
+    });
+}
+
+function stopLiveSteps(){
+    if (!connected){alert("Nicht verbunden!");return;}
+    window.disableLiveStepsNotify(function(data){
+        out=out+"Disabled Live Steps";
+        out=data.msg;
+        updateView();
+    }, function(error){
+         out=error.msg;
+         updateView();
+    });
+}
+
+
+
 document.getElementById("connectBtn").addEventListener("click", connect);
 document.getElementById("liveBtn").addEventListener("click", getCurrentStepCount);
 document.getElementById("syncBtn").addEventListener("click", synchronizeBandNow);
 document.getElementById("getBatBtn").addEventListener("click", getBatteryInfos);
+document.getElementById("getSensorBtn").addEventListener("click", getLiveSensor);
+document.getElementById("getStopSensorBtn").addEventListener("click", stopLiveSensor);
+document.getElementById("getLiveStepsBtn").addEventListener("click", getLiveSteps);
+document.getElementById("getStopLiveStepsBtn").addEventListener("click", stopLiveSteps);

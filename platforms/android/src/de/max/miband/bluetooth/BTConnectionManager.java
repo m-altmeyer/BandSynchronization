@@ -228,7 +228,7 @@ public class BTConnectionManager {
         }
     }
 
-    public void enableRealtimeSteps( boolean enable) {
+    public void enableRealtimeNotifications( boolean enable) {
         if (gatt == null) {
             Log.e(TAG,"NO GATT!!");
             return;
@@ -258,7 +258,7 @@ public class BTConnectionManager {
                 final List<BLEAction> list1 = new ArrayList<>();
                 list1.add(new NotifyAction(mAvailableCharacteristics.get(Profile.UUID_CHAR_REALTIME_STEPS), enable));
                 list1.add(new NotifyAction(mAvailableCharacteristics.get(Profile.UUID_CHAR_SENSOR_DATA), enable));
-                list1.add(new NotifyAction(mAvailableCharacteristics.get(Profile.UUID_CHAR_ACTIVITY_DATA), enable));
+                list1.add(new NotifyAction(mAvailableCharacteristics.get(Profile.UUID_CHAR_ACTIVITY_DATA), false));
                 list1.add(new NotifyAction(mAvailableCharacteristics.get(Profile.UUID_CHAR_SENSOR_DATA), enable));
 
 
@@ -510,6 +510,9 @@ public class BTConnectionManager {
                 Log.d(TAG, "ON CHARACTERSI CHANGED!!! - ACTIVITY!! -" + characteristicUUID.toString());
                 io.handleActivityNotif(characteristic.getValue());
             } else {
+                if (io.notifyListeners.containsKey(characteristic.getUuid())) {
+                    io.notifyListeners.get(characteristic.getUuid()).onNotify(characteristic.getValue());
+                }
                 super.onCharacteristicChanged(gatt, characteristic);
             }
         }

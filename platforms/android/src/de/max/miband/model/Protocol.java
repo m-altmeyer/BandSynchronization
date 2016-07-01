@@ -16,6 +16,8 @@ public class Protocol {
     public static final byte[] COMMAND_STOP_SYNC_DATA = {0x11};
     public static final byte[] ENABLE_REALTIME_STEPS_NOTIFY = {3, 1};
     public static final byte[] DISABLE_REALTIME_STEPS_NOTIFY = {3, 0};
+    public static final byte[] ENABLE_SENSOR_DATA_NOTIFY = {18, 1};
+    public static final byte[] DISABLE_SENSOR_DATA_NOTIFY = {18, 0};
     public static final byte[] COLOR_RED = {14, 6, 1, 2, 1};
     public static final byte[] COLOR_BLUE = {14, 0, 6, 6, 1};
     public static final byte[] COLOR_ORANGE = {14, 6, 2, 0, 1};
