@@ -195,7 +195,7 @@ function getLiveSteps(){
     setLoading(true);
     if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
     window.enableLiveStepsNotify(function(data){
-    if (!isNaN(parseInt(data.msg))){
+    if (!isNaN(parseFloat(data.msg))){
         steps=data.msg;
         }
         else{out=data.msg;}

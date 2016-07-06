@@ -669,7 +669,7 @@ public class MiBand {
     public void startListeningSync(final ActionCallback actionCallback) {
         checkConnection();
         btConnectionManager.enableSynchronization(true);
-
+        this.io.setSynchFail(false);
         currentlySynching = true;
         Log.d(TAG, "Synching running....");
         currentSynchCallback = actionCallback;
@@ -713,8 +713,6 @@ public class MiBand {
                     }
                 }));
                 queue(list2);
-
-
             }
 
             @Override
@@ -727,9 +725,6 @@ public class MiBand {
         queue(list);
     }
 
-    public void stopListeningSync() {
-        btConnectionManager.enableSynchronization(false);
-    }
 
     public boolean isSyncNotification() {
         return btConnectionManager.isSyncNotification();

@@ -12,7 +12,7 @@ import de.max.miband.AppUtils;
 public class MasterSQLiteHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "miband.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     /**
      * WITHOUT ROWID is only available with sqlite 3.8.2, which is available
@@ -30,10 +30,10 @@ public class MasterSQLiteHelper extends SQLiteOpenHelper {
     //Activities
     public String CREATE_ACTIVITIES_DB = "CREATE TABLE IF NOT EXISTS " + ActivitySQLite.TABLE_NAME + " ("
             + "timestamp INT, "
-            + "provider TINYINT, "
+            + "provider INT, "
             + "intensity SMALLINT, "
-            + "steps TINYINT, "
-            + "type TINYINT, "
+            + "steps INT, "
+            + "type INT, "
             + "PRIMARY KEY (timestamp, provider) ON CONFLICT REPLACE) " + getWithoutRowId();
 
     public String DELETE_ACTIVITIES_DB = "DROP TABLE IF EXISTS " + ActivitySQLite.TABLE_NAME;

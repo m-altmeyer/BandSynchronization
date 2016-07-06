@@ -43,6 +43,12 @@ public class BTCommandManager {
         this.mQueueConsumer.clear();
     }
 
+    public void setSynchFail(boolean synchFail) {
+        this.synchFail = synchFail;
+    }
+
+    private boolean synchFail=false;
+
     public BTCommandManager(Context context, BluetoothGatt gatt) {
         this.context = context;
         this.gatt = gatt;
@@ -283,6 +289,7 @@ public class BTCommandManager {
     }
 
     public void onFail(int errorCode, String msg) {
+        this.synchFail=true;
         if (this.currentCallback != null) {
             ActionCallback callback = this.currentCallback;
             this.currentCallback = null;
@@ -406,10 +413,24 @@ public class BTCommandManager {
                 bufferActivityData(value);
             }
         }finally {
-            if (activityStruct!=null) {
+            if (activityStruct!=null && !synchFail) {
                 if (activityStruct.isBlockFinished()) {
                     sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
                 }
+            }else{
+                final List<BLEAction> list = new ArrayList<>();
+                list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT,Protocol.COMMAND_STOP_SYNC_DATA ));
+                final BLETask task = new BLETask(list);
+                queueTask(task);
+
+                //Set to High Latency again
+                final List<BLEAction> list3 = new ArrayList<>();
+                list3.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, getHighLatency()));
+
+                BLETask task3 = new BLETask(list3);
+                queueTask(task3);
+
+                Log.e(TAG, "SYNCHO STOPPED AND NOT COMPLETED");
             }
         }
 
@@ -446,8 +467,13 @@ public class BTCommandManager {
         Log.d(TAG,"total data to read: " + totalDataToRead + " len: " + (totalDataToRead / 3) + " minute(s)");
         Log.d(TAG, "data to read until next header: " + dataUntilNextHeader + " len: " + (dataUntilNextHeader / 3) + " minute(s)");
         Log.d(TAG, "TIMESTAMP: " + DateFormat.getDateTimeInstance().format(timestamp.getTime()) + " magic byte: " + dataUntilNextHeader);
+        if (activityStruct != null){
+            activityStruct.startNewBlock(timestamp, dataUntilNextHeader);
+        }else{
+            this.onFail(333,"ActivityStruct is null");
+        }
 
-        activityStruct.startNewBlock(timestamp, dataUntilNextHeader);
+
     }
 
 
