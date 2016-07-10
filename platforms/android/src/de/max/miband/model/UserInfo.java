@@ -86,7 +86,7 @@ public class UserInfo {
      * @param btAddress the address of the MI Band to connect to.
      */
     public static UserInfo getDefault(String btAddress) {
-        return UserInfo.create(btAddress,0,30,170,75,"ALIAS",0);
+        return UserInfo.create(btAddress,0,30,170,75,"ALIAS3",0);
     }
 
     private String ensureTenCharacters(String alias) {

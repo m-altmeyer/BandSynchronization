@@ -163,53 +163,64 @@ function getBatteryInfos(){
 }
 
 function getLiveSensor(){
-    if (!connected){alert("Nicht verbunden!");return;}
+    setLoading(true);
+    if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
     window.enableSensorDataNotify(function(data){
         out=data.msg;
         updateView();
+        setLoading(false);
     }, function(error){
          out=error.msg;
          updateView();
+         setLoading(false);
     });
 }
 
 function stopLiveSensor(){
-    if (!connected){alert("Nicht verbunden!");return;}
+    setLoading(true);
+    if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
     window.disableSensorDataNotify(function(data){
         out=out+"Disabled Live Sensor Data";
         out=data.msg;
         updateView();
+        setLoading(false);
     }, function(error){
          out=error.msg;
          updateView();
+         setLoading(false);
     });
 }
 
 function getLiveSteps(){
-    if (!connected){alert("Nicht verbunden!");return;}
+    setLoading(true);
+    if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
     window.enableLiveStepsNotify(function(data){
-    if (!isNaN(parseInt(data.msg))){
+    if (!isNaN(parseFloat(data.msg))){
         steps=data.msg;
         }
         else{out=data.msg;}
-
+        setLoading(false);
         updateView();
 
     }, function(error){
          out=error.msg;
          updateView();
+         setLoading(false);
     });
 }
 
 function stopLiveSteps(){
-    if (!connected){alert("Nicht verbunden!");return;}
+    setLoading(true);
+    if (!connected){setLoading(false);alert("Nicht verbunden!");return;}
     window.disableLiveStepsNotify(function(data){
         out=out+"Disabled Live Steps";
         out=data.msg;
         updateView();
+        setLoading(false);
     }, function(error){
          out=error.msg;
          updateView();
+         setLoading(false);
     });
 }
 

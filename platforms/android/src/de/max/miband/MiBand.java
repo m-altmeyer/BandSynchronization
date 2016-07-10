@@ -272,6 +272,7 @@ public class MiBand {
 
     public void enableSensorDataNotify(ActionCallback callback) {
         checkConnection();
+        btConnectionManager.enableRealtimeNotifications(true);
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.ENABLE_SENSOR_DATA_NOTIFY, callback));
         queue(list);
@@ -302,7 +303,7 @@ public class MiBand {
      */
     public void enableRealtimeStepsNotify(ActionCallback callback) {
         checkConnection();
-        //btConnectionManager.enableRealtimeNotifications(true);
+        btConnectionManager.enableRealtimeNotifications(true);
 
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.ENABLE_REALTIME_STEPS_NOTIFY, callback));
@@ -668,7 +669,7 @@ public class MiBand {
     public void startListeningSync(final ActionCallback actionCallback) {
         checkConnection();
         btConnectionManager.enableSynchronization(true);
-
+        this.io.setSynchFail(false);
         currentlySynching = true;
         Log.d(TAG, "Synching running....");
         currentSynchCallback = actionCallback;
@@ -712,8 +713,6 @@ public class MiBand {
                     }
                 }));
                 queue(list2);
-
-
             }
 
             @Override
@@ -726,9 +725,6 @@ public class MiBand {
         queue(list);
     }
 
-    public void stopListeningSync() {
-        btConnectionManager.enableSynchronization(false);
-    }
 
     public boolean isSyncNotification() {
         return btConnectionManager.isSyncNotification();
