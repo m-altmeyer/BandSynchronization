@@ -224,7 +224,7 @@ public class BTConnectionManager {
                 io.queueTask(task1);
             }
         } catch (NullPointerException e) {
-
+            e.printStackTrace();
         }
     }
 
@@ -266,7 +266,7 @@ public class BTConnectionManager {
                 io.queueTask(task1);
             }
         } catch (NullPointerException e) {
-
+            e.printStackTrace();
         }
     }
 
@@ -319,7 +319,7 @@ public class BTConnectionManager {
                 gatt.setCharacteristicNotification(mAvailableCharacteristics.get(Profile.UUID_CHAR_SENSOR_DATA), enable);
             }
         } catch (NullPointerException e) {
-
+            e.printStackTrace();
         }
     }
 

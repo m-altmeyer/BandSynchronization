@@ -150,7 +150,8 @@ public class MiBandPlugin extends CordovaPlugin {
         boolean foundBand=false;
         String address="";
         for(BluetoothDevice device : pairedDevices){
-            if (device.getName() != null && device.getAddress() != null && device.getName().equals("MI") && device.getAddress().startsWith("88:0F:10")) {
+            Log.d(TAG, "Found: "+device.getName()+ " | "+device.getAddress());
+            if (device.getName() != null && device.getAddress() != null && device.getName().startsWith("MI") && device.getAddress().startsWith("88:0F:10")) {
                 address=device.getAddress();
                 foundBand=true;
             }

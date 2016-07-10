@@ -101,6 +101,7 @@ public class BTCommandManager {
         } catch (Throwable tr) {
             Log.e(TAG, "writeCharacteristic", tr);
             this.onFail(-1, tr.getMessage());
+            tr.printStackTrace();
         }
     }
 
@@ -130,6 +131,7 @@ public class BTCommandManager {
                 return false;
             }
         } catch (Throwable tr) {
+            tr.printStackTrace();
             this.onFail(333, "Error Writing Characteristic");
             return false;
         }
@@ -155,6 +157,7 @@ public class BTCommandManager {
             }
 
         } catch (Throwable tr) {
+            tr.printStackTrace();
             this.onFail(333, "Error Writing Characteristic");
             return false;
 
@@ -179,6 +182,7 @@ public class BTCommandManager {
                 this.onFail(-1, "gatt.readCharacteristic() return false");
             }
         } catch (Throwable tr) {
+            tr.printStackTrace();
             Log.e(TAG, "readCharacteristic", tr);
             this.onFail(-1, tr.getMessage());
         }
@@ -193,6 +197,7 @@ public class BTCommandManager {
             }
             return this.gatt.readCharacteristic(chara);
         } catch (Throwable tr) {
+            tr.printStackTrace();
             Log.e(TAG, "readCharacteristic", tr);
             onFail(333, "read Characteristic fail");
             return false;
@@ -209,6 +214,7 @@ public class BTCommandManager {
             this.currentCallback = callback;
             this.gatt.readRemoteRssi();
         } catch (Throwable tr) {
+            tr.printStackTrace();
             Log.e(TAG, "readRssi", tr);
             this.onFail(-1, tr.getMessage());
         }
@@ -477,6 +483,7 @@ public class BTCommandManager {
             } catch (Exception e) {
                 onFail(333, "error stopping activity sync");
                 Log.e(TAG, "error stopping activity sync", e);
+                e.printStackTrace();
             }
         }
     }
