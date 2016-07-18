@@ -63,8 +63,8 @@ public class MiBand {
                 btConnectionManager.setIo(io);
                 //Clear Queue
                 io.clearQueue();
-                setLowLatency();
-                //btConnectionManager.enableNotifications(true);
+                //setLowLatency();
+                btConnectionManager.enableNotifications(true);
 
                 readDeviceInfo(new ActionCallback() {
                     @Override
