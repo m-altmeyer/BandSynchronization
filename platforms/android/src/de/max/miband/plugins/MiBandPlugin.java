@@ -2,6 +2,7 @@ package de.max.miband.plugins;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
 import android.telecom.Call;
 import android.util.Log;
@@ -19,6 +20,7 @@ import java.util.Set;
 
 import de.max.miband.ActionCallback;
 import de.max.miband.DateUtils;
+import de.max.miband.DeviceInfo;
 import de.max.miband.MiBand;
 import de.max.miband.NotifyListener;
 import de.max.miband.RealtimeStepsNotifyListener;
@@ -236,6 +238,8 @@ public class MiBandPlugin extends CordovaPlugin {
                 public void run() {
                     Log.d(TAG, "GET LIVE SENSOR CALLED");
 
+                    sendResult(callbackContext, "Enable Realtime Sensor succeeded", true);
+                    /*
                     miBand.enableSensorDataNotify(new ActionCallback() {
                         @Override
                         public void onSuccess(Object data) {
@@ -247,8 +251,10 @@ public class MiBandPlugin extends CordovaPlugin {
                             sendResult(callbackContext, "Enable Realtime Sensor failed", false);
                         }
                     });
+                    */
                 }
             });
+
             return true;
         }
 

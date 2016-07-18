@@ -15,6 +15,7 @@ import de.max.miband.bluetooth.MiBandDateConverter;
 import de.max.miband.bluetooth.MiBandWrapper;
 import de.max.miband.bluetooth.NotificationConstants;
 import de.max.miband.bluetooth.NotifyAction;
+import de.max.miband.bluetooth.ReadAction;
 import de.max.miband.bluetooth.WaitAction;
 import de.max.miband.bluetooth.WriteAction;
 import de.max.miband.model.BatteryInfo;
@@ -45,6 +46,7 @@ public class MiBand {
     private boolean currentlySynching = false;
     private ActionCallback connectionCallback;
     private ActionCallback currentSynchCallback;
+    private DeviceInfo mDeviceInfo;
 
     public MiBand(final Context context, final String address) {
         MiBand.context = context;
@@ -61,34 +63,49 @@ public class MiBand {
                 btConnectionManager.setIo(io);
                 //Clear Queue
                 io.clearQueue();
-                //create(String address, int gender, int age, int height, int weight, String alias, int type)
+                setLowLatency();
+                //btConnectionManager.enableNotifications(true);
 
-                setUserInfo(UserInfo.getDefault(getAddress()), new ActionCallback() {
+                readDeviceInfo(new ActionCallback() {
                     @Override
                     public void onSuccess(Object data) {
-                        Log.d(TAG, "User Info successfully set.");
-                        //Set to high Latency Mode
-                        setHighLatency();
-                        //Set Current Time
-                        setCurrentTime(new ActionCallback() {
+                        BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
+                        byte[] value = characteristic.getValue();
+                        mDeviceInfo = new DeviceInfo(value);
+                        Log.d(TAG, "Device info: " + mDeviceInfo);
+                        setUserInfo(UserInfo.getDefault(getAddress(), mDeviceInfo), new ActionCallback() {
                             @Override
                             public void onSuccess(Object data) {
-                                Log.d(TAG, "Current Date successfully set.");
-                                readDate(new ActionCallback() {
+                                //Set to high Latency Mode
+                                setHighLatency();
+                                //Set Current Time
+                                setCurrentTime(new ActionCallback() {
                                     @Override
                                     public void onSuccess(Object data) {
-                                        GregorianCalendar calendar = MiBandDateConverter.rawBytesToCalendar((byte[]) data);
-                                        Log.d(TAG, "Current Date on MiBand successfully read: " + DateUtils.convertString(calendar));
-                                        //Set Step Goal
-                                        setFitnessGoal(99999, new ActionCallback() {
+                                        Log.d(TAG, "Current Date successfully set.");
+                                        readDate(new ActionCallback() {
                                             @Override
                                             public void onSuccess(Object data) {
-                                                Log.d(TAG, "Set Fitness Goal successfully");
+                                                GregorianCalendar calendar = MiBandDateConverter.rawBytesToCalendar((byte[]) data);
+                                                Log.d(TAG, "Current Date on MiBand successfully read: " + DateUtils.convertString(calendar));
+                                                //Set Step Goal
+                                                setFitnessGoal(99999, new ActionCallback() {
+                                                    @Override
+                                                    public void onSuccess(Object data) {
+                                                        Log.d(TAG, "Set Fitness Goal successfully");
+                                                    }
+
+                                                    @Override
+                                                    public void onFail(int errorCode, String msg) {
+                                                        Log.e(TAG, "Set Fitness Goal failed");
+
+                                                    }
+                                                });
                                             }
 
                                             @Override
                                             public void onFail(int errorCode, String msg) {
-                                                Log.e(TAG, "Set Fitness Goal failed");
+                                                Log.e(TAG, "Error reading Date: " + msg);
 
                                             }
                                         });
@@ -96,7 +113,7 @@ public class MiBand {
 
                                     @Override
                                     public void onFail(int errorCode, String msg) {
-                                        Log.e(TAG, "Error reading Date: " + msg);
+                                        Log.e(TAG, "Error setting Date: " + msg);
 
                                     }
                                 });
@@ -104,18 +121,19 @@ public class MiBand {
 
                             @Override
                             public void onFail(int errorCode, String msg) {
-                                Log.e(TAG, "Error setting Date: " + msg);
-
+                                Log.e(TAG, "Error setting UserInfo: " + msg);
+                                disconnect();
                             }
                         });
                     }
 
                     @Override
                     public void onFail(int errorCode, String msg) {
-                        Log.e(TAG, "Error setting UserInfo: " + msg);
+                        Log.e(TAG, "No device info");
                         disconnect();
                     }
                 });
+
 
 
                 if (connectionCallback != null)
@@ -222,7 +240,7 @@ public class MiBand {
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getLowLatency()));
         queue(list);
-        Log.d(TAG, "Setting High Latency Mode");
+        Log.d(TAG, "Setting Low Latency Mode");
     }
 
     /**
@@ -383,30 +401,56 @@ public class MiBand {
 
             @Override
             public void onSuccess(Object data) {
-                BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
-                //Log.d(TAG, "pair result " + Arrays.toString(characteristic.getValue()));
-                if (characteristic.getValue().length == 1 && characteristic.getValue()[0] == 2) {
-                    Log.d(TAG, "Pairing success!");
+                Log.d(TAG, "Pairing success!");
+                /*
+                setUserInfo(UserInfo.getDefault(getAddress()), new ActionCallback() {
+                    @Override
+                    public void onSuccess(Object data) {
+                        Log.d(TAG, "USER INFO SET");
+                    }
 
-                    setUserInfo(UserInfo.getDefault(getAddress()), null);
-
-                    //setUserInfo(null);
-                    if (connectionCallback != null)
-                        connectionCallback.onSuccess(null);
-                } else {
-                    if (connectionCallback != null)
-                        connectionCallback.onFail(-1, "failed to pair with Mi Band");
-                }
+                    @Override
+                    public void onFail(int errorCode, String msg) {
+                        Log.d(TAG, "USER INFO FAIL!");
+                    }
+                });
+                */
             }
 
             @Override
             public void onFail(int errorCode, String msg) {
-                if (connectionCallback != null)
-                    connectionCallback.onFail(errorCode, msg);
+               Log.e(TAG, "Pairing failed");
             }
         };
 
-        MiBand.io.writeAndRead(Profile.UUID_CHAR_PAIR, Protocol.PAIR, ioCallback);
+        List<BLEAction> list = new ArrayList<>();
+        list.add(new WriteAction(Profile.UUID_CHAR_PAIR, Protocol.PAIR, ioCallback));
+        queue(list);
+    }
+
+    public void readDeviceInfo(final ActionCallback callback){
+        ActionCallback cb =new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                MiBand.io.readCharacteristic(Profile.UUID_CHAR_DEVICE_NAME_2, callback);
+                /*
+                List<BLEAction> list2 = new ArrayList<>();
+                list2.add(new ReadAction(Profile.UUID_CHAR_DEVICE_NAME, callback));
+                queue(list2);
+                */
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                callback.onFail(333, "Could not get Device Info");
+            }
+        };
+        /*
+        List<BLEAction> list = new ArrayList<>();
+        list.add(new ReadAction(Profile.UUID_CHAR_DEVICE_INFO, cb));
+        queue(list);
+        */
+        MiBand.io.readCharacteristic(Profile.UUID_CHAR_DEVICE_INFO, callback);
     }
 
     /**
@@ -634,7 +678,7 @@ public class MiBand {
         BluetoothDevice device = btConnectionManager.getDevice();
 
         if (userInfo == null) {
-            userInfo = UserInfo.getDefault(getAddress());
+            userInfo = UserInfo.getDefault(getAddress(), mDeviceInfo);
         }
 
         final List<BLEAction> list = new ArrayList<>();
@@ -644,7 +688,7 @@ public class MiBand {
     }
 
     public void setUserInfo(int gender, int age, int height, int weight, String alias) {
-        UserInfo user = UserInfo.create(btConnectionManager.getDevice().getAddress(), gender, age, height, weight, alias, 0);
+        UserInfo user = UserInfo.create(btConnectionManager.getDevice().getAddress(), gender, age, height, weight, alias, 0, mDeviceInfo);
 
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_USER_INFO, user.getData()));

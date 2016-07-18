@@ -17,6 +17,7 @@ import de.max.miband.sqlite.ActivitySQLite;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -318,6 +319,27 @@ public class BTCommandManager {
         }
     }
 
+    public void handlePairResult(byte[] pairResult) {
+        String value = null;
+        if (pairResult != null) {
+            if (pairResult.length == 1) {
+                try {
+                    if (pairResult[0] == 2) {
+                        onSuccess(pairResult);
+                        Log.d(TAG, "Successfully paired  MI device BT COMMAND");
+                        return;
+                    }
+                } catch (Exception ex) {
+                    onFail(333, "Error identifying pairing result");
+                    Log.e(TAG, "Error identifying pairing result", ex);
+                    return;
+                }
+            }
+            value = Arrays.toString(pairResult);
+        }
+        Log.d(TAG, "MI Band pairing result in BT COMMAND: " + value);
+    }
+
     //ACTIVITY DATA
     //temporary buffer, size is a multiple of 60 because we want to store complete minutes (1 minute = 3 bytes)
     private static final int activityDataHolderSize = 3 * 60 * 4; // 8h
@@ -441,8 +463,42 @@ public class BTCommandManager {
         }
 
         //Log.d(TAG, "activity data: length: " + value.length + ", remaining bytes: " + activityStruct.activityDataRemainingBytes);
+    }
 
 
+    public void handleNotificationNotif(byte[] value) {
+        if (value.length != 1) {
+            Log.e(TAG,"Notifications should be 1 byte long.");
+            Log.d(TAG,"RECEIVED DATA WITH LENGTH: " + value.length);
+            for (byte b : value) {
+                Log.d(TAG,"DATA: " + String.format("0x%2x", b));
+            }
+            return;
+        }
+        switch (value[0]) {
+            //AUTH FAILED
+            case 0x6:
+                // we get first FAILED, then NOTIFY_STATUS_MOTOR_AUTH (0x13)
+                // which means, we need to authenticate by tapping
+                Log.e(TAG, "BAND NEEDS PAIRING");
+                break;
+            //SUCCESS
+            case 0x5: // fall through -- not sure which one we get
+            case 0xa: // for Mi 1A
+            case 0x15:
+                Log.d(TAG, "Band successfully authenticated");
+                break;
+
+            //STATUS MOTOR AUTH
+            case 0x13:
+                Log.d(TAG,"Band needs authentication (MOTOR_AUTH)");
+                break;
+
+            default:
+                for (byte b : value) {
+                    Log.d(TAG,"DATA: " + String.format("0x%2x", b));
+                }
+        }
     }
 
     private void handleActivityMetadata(byte[] value) {

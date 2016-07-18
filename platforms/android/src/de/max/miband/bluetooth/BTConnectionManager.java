@@ -228,6 +228,46 @@ public class BTConnectionManager {
         }
     }
 
+
+    public void enableNotifications( boolean enable) {
+        if (gatt == null) {
+            Log.e(TAG,"NO GATT!!");
+            return;
+        }
+        toggleNotifications(enable);
+        HashMap<UUID, BluetoothGattCharacteristic> mAvailableCharacteristics = null;
+
+        for (BluetoothGattService service : gatt.getServices()) {
+            if (Profile.UUID_SERVICE_MILI.equals(service.getUuid())) {
+                List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+                if (characteristics == null || characteristics.isEmpty()) {
+                    Log.e(TAG, "Supported LE service " + service.getUuid() + "did not return any characteristics");
+                    continue;
+                }
+                mAvailableCharacteristics = new HashMap<>(characteristics.size());
+                for (BluetoothGattCharacteristic characteristic : characteristics) {
+                    mAvailableCharacteristics.put(characteristic.getUuid(), characteristic);
+                }
+            }
+        }
+
+        try {
+            if (mAvailableCharacteristics != null && !mAvailableCharacteristics.isEmpty()) {
+
+                isSyncNotification = enable;
+
+                final List<BLEAction> list1 = new ArrayList<>();
+                list1.add(new NotifyAction(mAvailableCharacteristics.get(Profile.UUID_CHAR_NOTIFICATION), enable));
+
+                final BLETask task1 = new BLETask(list1);
+                io.queueTask(task1);
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public void enableRealtimeNotifications( boolean enable) {
         if (gatt == null) {
             Log.e(TAG,"NO GATT!!");
@@ -479,7 +519,14 @@ public class BTConnectionManager {
             //Log.i(TAG, "handleControlPoint got status:" + status);
 
             if (BluetoothGatt.GATT_SUCCESS == status) {
-                io.onSuccess(characteristic);
+                if (!characteristic.getUuid().equals(Profile.UUID_CHAR_PAIR)){
+                    io.onSuccess(characteristic);
+                }
+
+
+                if (characteristic.getUuid().equals(Profile.UUID_CHAR_PAIR)) {
+                    io.handlePairResult(characteristic.getValue());
+                }
 
                 if (characteristic.getUuid().equals(Profile.UUID_CHAR_CONTROL_POINT)) {
                     io.handleControlPointResult(characteristic.getValue());
@@ -510,9 +557,15 @@ public class BTConnectionManager {
                 Log.d(TAG, "ON CHARACTERSI CHANGED!!! - ACTIVITY!! -" + characteristicUUID.toString());
                 io.handleActivityNotif(characteristic.getValue());
             } else {
+                Log.d(TAG, "ON CHARACTERSI CHANGED!!! - NOTIF?!! -" + characteristicUUID.toString());
                 if (io.notifyListeners.containsKey(characteristic.getUuid())) {
                     io.notifyListeners.get(characteristic.getUuid()).onNotify(characteristic.getValue());
                 }
+
+                if (Profile.UUID_CHAR_NOTIFICATION.equals(characteristicUUID)){
+                    io.handleNotificationNotif(characteristic.getValue());
+                }
+
                 super.onCharacteristicChanged(gatt, characteristic);
             }
         }

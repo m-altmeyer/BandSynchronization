@@ -5,7 +5,11 @@ import android.content.SharedPreferences;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Random;
+
+import de.max.miband.CheckSums;
+import de.max.miband.DeviceInfo;
 
 public class UserInfo {
 
@@ -33,7 +37,7 @@ public class UserInfo {
 
     }
 
-    public UserInfo(String btAdress, int gender, int age, int height, int weight, String alias, int type) {
+    public UserInfo(String btAdress, int gender, int age, int height, int weight, String alias, int type, DeviceInfo mDeviceInfo) {
         this.btAddress = btAdress;
         this.gender = (byte) gender;
         this.age = (byte) age;
@@ -44,9 +48,8 @@ public class UserInfo {
         this.type = (byte) type;
 
         byte[] sequence = new byte[20];
-
         int uid = calculateUidFrom(alias);
-        String normalizedAlias = ensureTenCharacters(alias);
+
         sequence[0] = (byte) uid;
         sequence[1] = (byte) (uid >>> 8);
         sequence[2] = (byte) (uid >>> 16);
@@ -58,23 +61,27 @@ public class UserInfo {
         sequence[7] = (byte) (weight & 0xff);
         sequence[8] = (byte) (type & 0xff);
 
-        for (int u = 9; u < 19; u++)
-            sequence[u] = normalizedAlias.getBytes()[u - 9];
+        int aliasFrom = 9;
+        if (!mDeviceInfo.isMili1()) {
+            sequence[9] = (byte) (mDeviceInfo.feature & 255);
+            sequence[10] = (byte) (mDeviceInfo.appearance & 255);
+            aliasFrom = 11;
+        }
 
-        byte[] crcSequence = new byte[19];
-        System.arraycopy(sequence, 0, crcSequence, 0, crcSequence.length);
+        byte[] aliasBytes = alias.substring(0, Math.min(alias.length(), 19 - aliasFrom)).getBytes();
+        System.arraycopy(aliasBytes, 0, sequence, aliasFrom, aliasBytes.length);
 
-        sequence[19] = (byte) ((getCRC8(crcSequence) ^ Integer.parseInt(btAdress.substring(btAdress.length() - 2), 16)) & 0xff);
-
+        byte[] crcSequence = Arrays.copyOf(sequence, 19);
+        sequence[19] = (byte) ((CheckSums.getCRC8(crcSequence) ^ Integer.parseInt(this.btAddress.substring(this.btAddress.length() - 2), 16)) & 0xff);
         this.data = sequence;
     }
 
-    public static UserInfo create(String address, int gender, int age, int height, int weight, String alias, int type) throws IllegalArgumentException {
+    public static UserInfo create(String address, int gender, int age, int height, int weight, String alias, int type, DeviceInfo info) throws IllegalArgumentException {
         if (address == null || address.length() == 0) {
             throw new IllegalArgumentException("Invalid parameters");
         }
         try {
-            return new UserInfo(address, gender, age, height, weight, alias, type);
+            return new UserInfo(address, gender, age, height, weight, alias, type, info);
         } catch (Exception ex) {
             throw new IllegalArgumentException("Illegal user info data", ex);
         }
@@ -85,8 +92,8 @@ public class UserInfo {
      *
      * @param btAddress the address of the MI Band to connect to.
      */
-    public static UserInfo getDefault(String btAddress) {
-        return UserInfo.create(btAddress,0,30,170,75,"ALIAS3",0);
+    public static UserInfo getDefault(String btAddress, DeviceInfo info) {
+        return UserInfo.create(btAddress,0,30,170,75,"1550050550",0, info);
     }
 
     private String ensureTenCharacters(String alias) {
