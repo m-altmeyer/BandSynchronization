@@ -239,7 +239,7 @@ public class MiBandPlugin extends CordovaPlugin {
                     Log.d(TAG, "GET LIVE SENSOR CALLED");
 
                     sendResult(callbackContext, "Enable Realtime Sensor succeeded", true);
-                    /*
+
                     miBand.enableSensorDataNotify(new ActionCallback() {
                         @Override
                         public void onSuccess(Object data) {
@@ -251,7 +251,7 @@ public class MiBandPlugin extends CordovaPlugin {
                             sendResult(callbackContext, "Enable Realtime Sensor failed", false);
                         }
                     });
-                    */
+
                 }
             });
 

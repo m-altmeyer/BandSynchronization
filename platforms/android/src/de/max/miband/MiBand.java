@@ -98,7 +98,7 @@ public class MiBand {
                                                     @Override
                                                     public void onFail(int errorCode, String msg) {
                                                         Log.e(TAG, "Set Fitness Goal failed");
-
+                                                        disconnect();
                                                     }
                                                 });
                                             }
@@ -106,7 +106,7 @@ public class MiBand {
                                             @Override
                                             public void onFail(int errorCode, String msg) {
                                                 Log.e(TAG, "Error reading Date: " + msg);
-
+                                                disconnect();
                                             }
                                         });
                                     }
@@ -114,7 +114,7 @@ public class MiBand {
                                     @Override
                                     public void onFail(int errorCode, String msg) {
                                         Log.e(TAG, "Error setting Date: " + msg);
-
+                                        disconnect();
                                     }
                                 });
                             }
