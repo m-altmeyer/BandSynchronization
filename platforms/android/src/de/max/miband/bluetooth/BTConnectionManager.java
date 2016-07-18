@@ -75,7 +75,7 @@ public class BTConnectionManager {
                             + device.getType() + ", bondState: "
                             + device.getBondState() + ", rssi: " + rssi);
 
-            if (device.getName() != null && device.getAddress() != null && device.getName().equals("MI") && device.getAddress().startsWith("88:0F:10")) {
+            if (device.getName() != null && device.getAddress() != null && device.getName().startsWith("MI")){ //&& device.getAddress().startsWith("88:0F:10")) {
                 mFound = true;
 
                 stopDiscovery();
