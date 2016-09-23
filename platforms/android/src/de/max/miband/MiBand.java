@@ -1,6 +1,5 @@
 package de.max.miband;
 
-import android.app.Notification;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
@@ -13,9 +12,6 @@ import de.max.miband.bluetooth.BTCommandManager;
 import de.max.miband.bluetooth.BTConnectionManager;
 import de.max.miband.bluetooth.MiBandDateConverter;
 import de.max.miband.bluetooth.MiBandWrapper;
-import de.max.miband.bluetooth.NotificationConstants;
-import de.max.miband.bluetooth.NotifyAction;
-import de.max.miband.bluetooth.ReadAction;
 import de.max.miband.bluetooth.WaitAction;
 import de.max.miband.bluetooth.WriteAction;
 import de.max.miband.model.BatteryInfo;
@@ -23,18 +19,15 @@ import de.max.miband.model.LedColor;
 import de.max.miband.model.Profile;
 import de.max.miband.model.Protocol;
 import de.max.miband.model.UserInfo;
-import de.max.miband.model.VibrationMode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
 import java.util.List;
 
 public class MiBand {
-
     private static final String TAG = "MiBand";
     private static Context context;
     private static String address;
@@ -134,8 +127,6 @@ public class MiBand {
                     }
                 });
 
-
-
                 if (connectionCallback != null)
                     connectionCallback.onSuccess(null);
             }
@@ -161,15 +152,22 @@ public class MiBand {
         } else {
             MiBand.context = context;
         }
-
         return instance;
     }
 
-
+    /**
+     * Can be used to check wether the sync process is running
+     * @return true, if currently synching steps
+     */
     public boolean isCurrentlySynching() {
         return currentlySynching;
     }
 
+    /**
+     * Sets a fitness goal on the Band
+     * @param fitnessGoal, the goal to be set
+     * @param callback, the Action Callback to be called
+     */
     public void setFitnessGoal(int fitnessGoal, final ActionCallback callback) {
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, new byte[]{
@@ -178,73 +176,12 @@ public class MiBand {
                 (byte) (fitnessGoal & 0xff),
                 (byte) ((fitnessGoal >>> 8) & 0xff)
         }, callback));
-
         queue(list);
-    }
-
-
-    public void readDate(final ActionCallback callback) {
-        checkConnection();
-
-        ActionCallback ioCallback = new ActionCallback() {
-            @Override
-            public void onSuccess(Object data) {
-                BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
-                Log.d(TAG, "getDate result " + Arrays.toString(characteristic.getValue()));
-                callback.onSuccess(characteristic.getValue());
-            }
-
-            @Override
-            public void onFail(int errorCode, String msg) {
-                callback.onFail(errorCode, msg);
-            }
-        };
-
-        MiBand.io.readCharacteristic(Profile.UUID_CHAR_DATA_TIME, ioCallback);
-    }
-
-
-    public void readCurrentStepCount(final ActionCallback callback) {
-        checkConnection();
-
-        ActionCallback ioCallback = new ActionCallback() {
-            @Override
-            public void onSuccess(Object data) {
-                BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
-                byte[] value = characteristic.getValue();
-                int steps = 0xff & value[0] | (0xff & value[1]) << 8;
-                Log.d(TAG, "getCurrentStepCount result " + steps);
-                callback.onSuccess(steps);
-            }
-
-            @Override
-            public void onFail(int errorCode, String msg) {
-                callback.onFail(errorCode, msg);
-            }
-        };
-
-        MiBand.io.readCharacteristic(Profile.UUID_CHAR_REALTIME_STEPS, ioCallback);
-    }
-
-
-    public void setHighLatency() {
-        //Set to High Latency again
-        final List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getHighLatency()));
-        queue(list);
-        Log.d(TAG, "Setting High Latency Mode");
-    }
-
-    public void setLowLatency() {
-        //Set to High Latency again
-        final List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getLowLatency()));
-        queue(list);
-        Log.d(TAG, "Setting Low Latency Mode");
     }
 
     /**
-     * Sets the current time to the Mi device.
+     * Sets the Date on the Band
+     * @param callback, the Action Callback
      */
     private void setCurrentTime(ActionCallback callback) {
         Calendar now = GregorianCalendar.getInstance();
@@ -272,6 +209,145 @@ public class MiBand {
         Log.d(TAG, "Date set.");
     }
 
+    /**
+     * Reads the current date on the MiBand
+     * !CALL 'setDate' FIRST!
+     * @param callback, the Action Callback to be called
+     */
+    public void readDate(final ActionCallback callback) {
+        checkConnection();
+        ActionCallback ioCallback = new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
+                Log.d(TAG, "getDate result " + Arrays.toString(characteristic.getValue()));
+                callback.onSuccess(characteristic.getValue());
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                callback.onFail(errorCode, msg);
+            }
+        };
+        MiBand.io.readCharacteristic(Profile.UUID_CHAR_DATA_TIME, ioCallback);
+    }
+
+    /**
+     * Read the current Step Count (Without synching data!)
+     * @param callback, the Action Callback to be called (on Success, steps are returned as int)
+     */
+    public void readCurrentStepCount(final ActionCallback callback) {
+        checkConnection();
+        ActionCallback ioCallback = new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                BluetoothGattCharacteristic characteristic = (BluetoothGattCharacteristic) data;
+                byte[] value = characteristic.getValue();
+                int steps = 0xff & value[0] | (0xff & value[1]) << 8;
+                Log.d(TAG, "getCurrentStepCount result " + steps);
+                callback.onSuccess(steps);
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                callback.onFail(errorCode, msg);
+            }
+        };
+
+        MiBand.io.readCharacteristic(Profile.UUID_CHAR_REALTIME_STEPS, ioCallback);
+    }
+
+    /**
+     * Initiate the synchronization process
+     * @param actionCallback, the Action Callback to be called
+     * Data remains always on the Band to not lose anything
+     * Synchronized data directly is stored in the internal sqlite db
+     */
+    public void startListeningSync(final ActionCallback actionCallback) {
+        checkConnection();
+        btConnectionManager.enableSynchronization(true);
+        this.io.setSynchFail(false);
+        currentlySynching = true;
+        Log.d(TAG, "Synching running....");
+        currentSynchCallback = actionCallback;
+
+        final List<BLEAction> list = new ArrayList<>();
+
+        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, this.io.getLowLatency(), new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                Log.d(TAG, "Set MiBand to Low Latency Mode");
+                currentSynchCallback = actionCallback;
+
+                final List<BLEAction> list2 = new ArrayList<>();
+                list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.FETCH_DATA, new ActionCallback() {
+                    @Override
+                    public void onSuccess(Object data) {
+                        actionCallback.onSuccess(data);
+
+                        io.setCurrentSynchCallback(new ActionCallback() {
+                            @Override
+                            public void onSuccess(Object data) {
+                                currentlySynching = false;
+                                Log.d(TAG, "Synching stopped.");
+                                currentSynchCallback.onSuccess(data);
+                            }
+
+                            @Override
+                            public void onFail(int errorCode, String msg) {
+                                currentlySynching = false;
+                                currentSynchCallback.onFail(errorCode, msg);
+                                Log.d(TAG, "Synching stopped (ERR).");
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFail(int errorCode, String msg) {
+                        currentlySynching = false;
+                        actionCallback.onFail(errorCode, msg);
+                        Log.d(TAG, "Synching stopped (ERR).");
+                    }
+                }));
+                queue(list2);
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                Log.d(TAG, "Setting to Low Latency Mode Failed");
+                actionCallback.onFail(333, "LOW LATENCY FAIL");
+            }
+        }));
+
+        queue(list);
+    }
+
+    /**
+     * Sets the Band to high latency mode
+     * Should be the default state of the communication
+     */
+    public void setHighLatency() {
+        final List<BLEAction> list = new ArrayList<>();
+        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getHighLatency()));
+        queue(list);
+        Log.d(TAG, "Setting High Latency Mode");
+    }
+
+    /**
+     * Sets the Band to low latency mode
+     * Can be used to have a more reliable connection (e.g.when synching)
+     */
+    public void setLowLatency() {
+        final List<BLEAction> list = new ArrayList<>();
+        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, io.getLowLatency()));
+        queue(list);
+        Log.d(TAG, "Setting Low Latency Mode");
+    }
+
+
+    /**
+     * Disconnect from the band
+     */
     public static void disconnect() {
         Log.e(TAG, "Disconnecting Mi Band...");
         if (miBandService != null)
@@ -279,6 +355,11 @@ public class MiBand {
         btConnectionManager.disconnect();
     }
 
+    /**
+     * Subscribe to sensor changes
+     * !REMEMBER to turn on sensor notifications!
+     * @param listener, a listener to be called
+     */
     public void setSensorDataNotifyListener(final NotifyListener listener) {
         this.io.setNotifyListener(Profile.UUID_CHAR_SENSOR_DATA, new NotifyListener() {
             @Override
@@ -288,6 +369,10 @@ public class MiBand {
         });
     }
 
+    /**
+     * Turn on Sensor Notifications
+     * @param callback
+     */
     public void enableSensorDataNotify(ActionCallback callback) {
         checkConnection();
         btConnectionManager.enableRealtimeNotifications(true);
@@ -296,6 +381,10 @@ public class MiBand {
         queue(list);
     }
 
+    /**
+     * Turn off Sensor Notifications
+     * @param callback
+     */
     public void disableSensorDataNotify(ActionCallback callback) {
         checkConnection();
         final List<BLEAction> list = new ArrayList<>();
@@ -303,6 +392,11 @@ public class MiBand {
         queue(list);
     }
 
+    /**
+     * Subscribe to step counter changes
+     * !REMEMBER to turn on step notifications!
+     * @param listener
+     */
     public void setRealtimeStepsNotifyListener(final RealtimeStepsNotifyListener listener) {
         checkConnection();
 
@@ -317,7 +411,8 @@ public class MiBand {
     }
 
     /**
-     * Starts listening to step count in real time
+     * Turn on Step Notifications
+     * @param callback
      */
     public void enableRealtimeStepsNotify(ActionCallback callback) {
         checkConnection();
@@ -330,7 +425,8 @@ public class MiBand {
     }
 
     /**
-     * Stops listening to step count in real time
+     * Turn off Step Notifications
+     * @param callback
      */
     public void disableRealtimeStepsNotify(ActionCallback callback) {
         checkConnection();
@@ -341,6 +437,9 @@ public class MiBand {
         queue(list);
     }
 
+    /**
+     * Dispose the band
+     */
     public static void dispose() {
         Log.e(TAG, "Disposing Mi Band...");
         if (miBandService != null)
@@ -349,8 +448,7 @@ public class MiBand {
     }
 
     /**
-     * Android device will automatically search for nearby Mi Band, automatic connection, because the hand will have only one Mi Band,
-     * currently only supports the search to case a bracelet
+     * Connects to the (first) paired band in bonded devices
      *
      * @param callback
      */
@@ -363,6 +461,10 @@ public class MiBand {
         }
     }
 
+    /**
+     * Get the address of the connected band
+     * @return the adress
+     */
     public String getAddress() {
         if (!isConnected()) {
             return "";
@@ -371,6 +473,10 @@ public class MiBand {
         }
     }
 
+    /**
+     * Check if the Band is currently connected
+     * @return true, if connected
+     */
     private void checkConnection() {
         if (!isConnected()) {
             Log.e(TAG, "Not connected... Waiting for new connection...");
@@ -392,52 +498,14 @@ public class MiBand {
     }
 
     /**
-     * Pairs with Mi Band, for practical purposes unknown, mismatch can also do other operation.
+     * Read the device information
+     * @param callback
      */
-    public void pair() {
-        Log.d(TAG, "Pairing...");
-
-        ActionCallback ioCallback = new ActionCallback() {
-
-            @Override
-            public void onSuccess(Object data) {
-                Log.d(TAG, "Pairing success!");
-                /*
-                setUserInfo(UserInfo.getDefault(getAddress()), new ActionCallback() {
-                    @Override
-                    public void onSuccess(Object data) {
-                        Log.d(TAG, "USER INFO SET");
-                    }
-
-                    @Override
-                    public void onFail(int errorCode, String msg) {
-                        Log.d(TAG, "USER INFO FAIL!");
-                    }
-                });
-                */
-            }
-
-            @Override
-            public void onFail(int errorCode, String msg) {
-               Log.e(TAG, "Pairing failed");
-            }
-        };
-
-        List<BLEAction> list = new ArrayList<>();
-        list.add(new WriteAction(Profile.UUID_CHAR_PAIR, Protocol.PAIR, ioCallback));
-        queue(list);
-    }
-
-    public void readDeviceInfo(final ActionCallback callback){
-        ActionCallback cb =new ActionCallback() {
+    public void readDeviceInfo(final ActionCallback callback) {
+        ActionCallback cb = new ActionCallback() {
             @Override
             public void onSuccess(Object data) {
                 MiBand.io.readCharacteristic(Profile.UUID_CHAR_DEVICE_NAME_2, callback);
-                /*
-                List<BLEAction> list2 = new ArrayList<>();
-                list2.add(new ReadAction(Profile.UUID_CHAR_DEVICE_NAME, callback));
-                queue(list2);
-                */
             }
 
             @Override
@@ -445,11 +513,6 @@ public class MiBand {
                 callback.onFail(333, "Could not get Device Info");
             }
         };
-        /*
-        List<BLEAction> list = new ArrayList<>();
-        list.add(new ReadAction(Profile.UUID_CHAR_DEVICE_INFO, cb));
-        queue(list);
-        */
         MiBand.io.readCharacteristic(Profile.UUID_CHAR_DEVICE_INFO, callback);
     }
 
@@ -465,6 +528,7 @@ public class MiBand {
 
     /**
      * Read band battery information
+     * @param callback , the action callback containing the information
      */
     public void getBatteryInfo(final ActionCallback callback) {
         checkConnection();
@@ -709,66 +773,6 @@ public class MiBand {
 
         queue(list);
     }
-
-    public void startListeningSync(final ActionCallback actionCallback) {
-        checkConnection();
-        btConnectionManager.enableSynchronization(true);
-        this.io.setSynchFail(false);
-        currentlySynching = true;
-        Log.d(TAG, "Synching running....");
-        currentSynchCallback = actionCallback;
-
-        final List<BLEAction> list = new ArrayList<>();
-
-        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, this.io.getLowLatency(), new ActionCallback() {
-            @Override
-            public void onSuccess(Object data) {
-                Log.d(TAG, "Set MiBand to Low Latency Mode");
-                currentSynchCallback = actionCallback;
-
-                final List<BLEAction> list2 = new ArrayList<>();
-                list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.FETCH_DATA, new ActionCallback() {
-                    @Override
-                    public void onSuccess(Object data) {
-                        actionCallback.onSuccess(data);
-
-                        io.setCurrentSynchCallback(new ActionCallback() {
-                            @Override
-                            public void onSuccess(Object data) {
-                                currentlySynching = false;
-                                Log.d(TAG, "Synching stopped.");
-                                currentSynchCallback.onSuccess(data);
-                            }
-
-                            @Override
-                            public void onFail(int errorCode, String msg) {
-                                currentlySynching = false;
-                                currentSynchCallback.onFail(errorCode, msg);
-                                Log.d(TAG, "Synching stopped (ERR).");
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onFail(int errorCode, String msg) {
-                        currentlySynching = false;
-                        actionCallback.onFail(errorCode, msg);
-                        Log.d(TAG, "Synching stopped (ERR).");
-                    }
-                }));
-                queue(list2);
-            }
-
-            @Override
-            public void onFail(int errorCode, String msg) {
-                Log.d(TAG, "Setting to Low Latency Mode Failed");
-                actionCallback.onFail(333, "LOW LATENCY FAIL");
-            }
-        }));
-
-        queue(list);
-    }
-
 
     public boolean isSyncNotification() {
         return btConnectionManager.isSyncNotification();

@@ -472,6 +472,7 @@ public class BTConnectionManager {
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             Log.d(TAG, "descriptor write: " + descriptor.getUuid());
             if (!checkCorrectGattInstance(gatt, "descriptor write")) {
+                gatt.disconnect();
                 return;
             }
 
@@ -505,6 +506,7 @@ public class BTConnectionManager {
         public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             Log.d(TAG, "descriptor read: " + descriptor.getUuid() + status);
             if (!checkCorrectGattInstance(gatt, "descriptor read")) {
+                gatt.disconnect();
                 return;
             }
 

@@ -4,14 +4,18 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.format.DateFormat;
 import android.util.Log;
 
 import de.max.miband.DateUtils;
 import de.max.miband.models.ActivityData;
 import de.max.miband.models.ActivityKind;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Created by betomaluje on 7/9/15.
@@ -37,26 +41,43 @@ public class ActivitySQLite {
     }
 
     public boolean saveActivity(int timestamp, byte provider, short intensity, int steps, byte type) {
-        MasterSQLiteHelper helperDB = new MasterSQLiteHelper(context);
-        SQLiteDatabase db = helperDB.getWritableDatabase();
+        Calendar stepDate = Calendar.getInstance();
+        stepDate.setTimeInMillis(timestamp * 1000L);
 
-        Log.e(TAG, "saving Activity " + timestamp);
+        Calendar currentDate = Calendar.getInstance();
+        currentDate.setTimeInMillis(System.currentTimeMillis());
 
-        ContentValues cv = new ContentValues();
-        cv.put("timestamp", timestamp);
-        cv.put("provider", provider);
-        cv.put("intensity", intensity);
-        cv.put("steps", steps);
-        cv.put("type", type);
 
-        Log.d(TAG, "INSERTED STEPS::::::::::::"+Integer.toString(steps));
+        if (stepDate.before(currentDate)){
+            Log.d(TAG, "DATE::::::::::::"+DateUtils.convertString(stepDate)+" before "+DateUtils.convertString(currentDate));
+            MasterSQLiteHelper helperDB = new MasterSQLiteHelper(context);
+            SQLiteDatabase db = helperDB.getWritableDatabase();
 
-        if (db.insert(TABLE_NAME, null, cv) != -1) {
-            Log.e(TAG, "Activity " + timestamp + " SUCCESS INSERTING DATA");
-            db.close();
-            return true;
-        } else {
-            db.close();
+            Log.e(TAG, "saving Activity " + timestamp);
+
+            ContentValues cv = new ContentValues();
+            cv.put("timestamp", timestamp);
+            cv.put("provider", provider);
+            cv.put("intensity", intensity);
+            cv.put("steps", steps);
+            cv.put("type", type);
+
+            Calendar date = Calendar.getInstance();
+            date.setTimeInMillis(timestamp * 1000L);
+
+            String dateString = DateUtils.convertString(date);
+            Log.d(TAG, "INSERTED STEPS::::::::::::"+Integer.toString(steps)+ " ON "+dateString);
+
+            if (db.insert(TABLE_NAME, null, cv) != -1) {
+                Log.e(TAG, "Activity " + timestamp + " SUCCESS INSERTING DATA");
+                db.close();
+                return true;
+            } else {
+                db.close();
+                return false;
+            }
+        }else{
+            Log.d(TAG, "ERROR! NOT INSERTED STEPS::::::::::::"+timestamp+"("+(System.currentTimeMillis()/1000)+")");
             return false;
         }
     }

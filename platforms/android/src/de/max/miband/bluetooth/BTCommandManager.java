@@ -444,6 +444,23 @@ public class BTCommandManager {
             sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
             //GB.updateTransferNotification("", false, 100, getContext());
         }
+
+        if (synchFail){
+            final List<BLEAction> list2 = new ArrayList<>();
+            list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
+            BLETask task2 = new BLETask(list2);
+
+            //Set to High Latency again
+            final List<BLEAction> list3 = new ArrayList<>();
+            list3.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, getHighLatency()));
+
+            BLETask task3 = new BLETask(list3);
+            queueTask(task3);
+            queueTask(task2);
+
+            Log.d(TAG, "FAIL!!!!!!!!!!!!!!");
+            activityStruct = null;
+        }
         /*
         } finally {
             if (activityStruct != null && !synchFail) {
@@ -643,9 +660,7 @@ public class BTCommandManager {
         };
 
         final List<BLEAction> list = new ArrayList<>();
-
         list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, ack));
-
         BLETask task = new BLETask(list);
 
         try {
@@ -657,12 +672,9 @@ public class BTCommandManager {
             //When we ack this chunk, the transfer is done.
             if (bytesTransferred == 0) {
                 //Do not ACK synchronization (data remains on Device)
-                //TODO
                 final List<BLEAction> list2 = new ArrayList<>();
                 list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
-
                 BLETask task2 = new BLETask(list2);
-
 
                 //Set to High Latency again
                 final List<BLEAction> list3 = new ArrayList<>();
