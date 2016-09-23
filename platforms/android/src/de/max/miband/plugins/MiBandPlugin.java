@@ -361,6 +361,8 @@ public class MiBandPlugin extends CordovaPlugin {
                                 sendResult(callbackContext, msg, false);
                             }
                         });
+
+                        sendResult(callbackContext, "", false);
                     } else {
                         sendResult(callbackContext, "Mi Band is not connected", false);
                     }

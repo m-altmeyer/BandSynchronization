@@ -40,7 +40,7 @@ public class BTCommandManager {
     private Context context;
     public BluetoothGatt gatt;
 
-    public void clearQueue(){
+    public void clearQueue() {
         this.mQueueConsumer.clear();
     }
 
@@ -48,7 +48,7 @@ public class BTCommandManager {
         this.synchFail = synchFail;
     }
 
-    private boolean synchFail=false;
+    private boolean synchFail = false;
 
     public BTCommandManager(Context context, BluetoothGatt gatt) {
         this.context = context;
@@ -131,9 +131,9 @@ public class BTCommandManager {
             }
             chara.setValue(value);
 
-            if (this.gatt.writeCharacteristic(chara)){
+            if (this.gatt.writeCharacteristic(chara)) {
                 return true;
-            }else{
+            } else {
                 this.onFail(333, "Write Charactersitic failed");
                 return false;
             }
@@ -155,10 +155,10 @@ public class BTCommandManager {
             }
             chara.setValue(value);
 
-            if (this.gatt.writeCharacteristic(chara)){
+            if (this.gatt.writeCharacteristic(chara)) {
                 return true;
 
-            }else{
+            } else {
                 this.onFail(333, "Write Charactersitic failed");
                 return false;
             }
@@ -283,9 +283,9 @@ public class BTCommandManager {
     }
 
     public void onSuccess(Object data) {
-        if (data.equals("sync complete") && this.currentSynchCallback!=null){
+        if (data.equals("sync complete") && this.currentSynchCallback != null) {
             this.currentSynchCallback.onSuccess("sync complete");
-            this.currentSynchCallback=null;
+            this.currentSynchCallback = null;
         }
 
         if (this.currentCallback != null) {
@@ -296,16 +296,16 @@ public class BTCommandManager {
     }
 
     public void onFail(int errorCode, String msg) {
-        this.synchFail=true;
+        this.synchFail = true;
         if (this.currentCallback != null) {
             ActionCallback callback = this.currentCallback;
             this.currentCallback = null;
             callback.onFail(errorCode, msg);
         }
 
-        if (this.currentSynchCallback!=null){
-            this.currentSynchCallback.onFail(errorCode,msg);
-            this.currentSynchCallback=null;
+        if (this.currentSynchCallback != null) {
+            this.currentSynchCallback.onFail(errorCode, msg);
+            this.currentSynchCallback = null;
         }
     }
 
@@ -429,25 +429,30 @@ public class BTCommandManager {
     private ActivityStruct activityStruct;
 
     public void handleActivityNotif(byte[] value) {
-        try{
-            boolean firstChunk = activityStruct == null;
-            if (firstChunk) {
-                activityStruct = new ActivityStruct(3*60*4);
-            }
+        boolean firstChunk = activityStruct == null;
+        if (firstChunk) {
+            activityStruct = new ActivityStruct(3 * 60 * 4);
+        }
 
-            if (value.length == 11) {
-                handleActivityMetadata(value);
-            } else {
-                bufferActivityData(value);
-            }
-        }finally {
-            if (activityStruct!=null && !synchFail) {
+        if (value.length == 11) {
+            handleActivityMetadata(value);
+        } else {
+            bufferActivityData(value);
+        }
+
+        if (activityStruct.isBlockFinished()) {
+            sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
+            //GB.updateTransferNotification("", false, 100, getContext());
+        }
+        /*
+        } finally {
+            if (activityStruct != null && !synchFail) {
                 if (activityStruct.isBlockFinished()) {
                     sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
                 }
-            }else{
+            } else {
                 final List<BLEAction> list = new ArrayList<>();
-                list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT,Protocol.COMMAND_STOP_SYNC_DATA ));
+                list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
                 final BLETask task = new BLETask(list);
                 queueTask(task);
 
@@ -463,15 +468,16 @@ public class BTCommandManager {
         }
 
         //Log.d(TAG, "activity data: length: " + value.length + ", remaining bytes: " + activityStruct.activityDataRemainingBytes);
+        */
     }
 
 
     public void handleNotificationNotif(byte[] value) {
         if (value.length != 1) {
-            Log.e(TAG,"Notifications should be 1 byte long.");
-            Log.d(TAG,"RECEIVED DATA WITH LENGTH: " + value.length);
+            Log.e(TAG, "Notifications should be 1 byte long.");
+            Log.d(TAG, "RECEIVED DATA WITH LENGTH: " + value.length);
             for (byte b : value) {
-                Log.d(TAG,"DATA: " + String.format("0x%2x", b));
+                Log.d(TAG, "DATA: " + String.format("0x%2x", b));
             }
             return;
         }
@@ -491,12 +497,12 @@ public class BTCommandManager {
 
             //STATUS MOTOR AUTH
             case 0x13:
-                Log.d(TAG,"Band needs authentication (MOTOR_AUTH)");
+                Log.d(TAG, "Band needs authentication (MOTOR_AUTH)");
                 break;
 
             default:
                 for (byte b : value) {
-                    Log.d(TAG,"DATA: " + String.format("0x%2x", b));
+                    Log.d(TAG, "DATA: " + String.format("0x%2x", b));
                 }
         }
     }
@@ -526,16 +532,14 @@ public class BTCommandManager {
         // after dataUntilNextHeader bytes we will get a new packet of 11 bytes that should be parsed
         // as we just did
 
-        Log.d(TAG,"total data to read: " + totalDataToRead + " len: " + (totalDataToRead / 3) + " minute(s)");
+        Log.d(TAG, "total data to read: " + totalDataToRead + " len: " + (totalDataToRead / 3) + " minute(s)");
         Log.d(TAG, "data to read until next header: " + dataUntilNextHeader + " len: " + (dataUntilNextHeader / 3) + " minute(s)");
         Log.d(TAG, "TIMESTAMP: " + DateFormat.getDateTimeInstance().format(timestamp.getTime()) + " magic byte: " + dataUntilNextHeader);
-        if (activityStruct != null){
+        if (activityStruct != null) {
             activityStruct.startNewBlock(timestamp, dataUntilNextHeader);
-        }else{
-            this.onFail(333,"ActivityStruct is null");
+        } else {
+            this.onFail(333, "ActivityStruct is null");
         }
-
-
     }
 
 
@@ -554,13 +558,13 @@ public class BTCommandManager {
         } else {
             Log.e(TAG, "error buffering activity data: remaining bytes: " + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
             try {
-                /*
+
                 final List<BLEAction> list = new ArrayList<>();
-                list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT,Protocol.COMMAND_STOP_SYNC_DATA ));
+                list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
                 final BLETask task = new BLETask(list);
                 queueTask(task);
-                */
-                onFail(333,"error buffering activity data: remaining bytes:" + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
+
+                onFail(333, "error buffering activity data: remaining bytes:" + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
                 handleActivityFetchFinish();
             } catch (Exception e) {
                 onFail(333, "error stopping activity sync");
@@ -581,33 +585,49 @@ public class BTCommandManager {
             return;
         }
 
-        byte category, intensity;
-        int steps;
+        int minutes = 0;
 
-        ActivitySQLite dbHandler = ActivitySQLite.getInstance(context);
+        try {
+            byte category, intensity, steps;
+            ActivitySQLite dbHandler = ActivitySQLite.getInstance(context);
+            int timestampInSeconds = (int) (activityStruct.activityDataTimestampProgress.getTimeInMillis() / 1000);
 
-        for (int i = 0; i < activityStruct.activityDataHolderProgress; i += 3) { //TODO: check if multiple of 3, if not something is wrong
-            category = activityStruct.activityDataHolder[i];
-            intensity = activityStruct.activityDataHolder[i + 1];
-            steps = activityStruct.activityDataHolder[i + 2] & 0xff;
+            for (int i = 0; i < activityStruct.activityDataHolderProgress; i += 3) { //TODO: check if multiple of 3, if not something is wrong
+                category = activityStruct.activityDataHolder[i];
+                intensity = activityStruct.activityDataHolder[i + 1];
+                steps = activityStruct.activityDataHolder[i + 2];
 
-            dbHandler.saveActivity((int) (activityStruct.activityDataTimestampProgress.getTimeInMillis() / 1000),
-                    ActivityData.PROVIDER_MIBAND,
-                    intensity,
-                    steps,
-                    category);
+                dbHandler.saveActivity(
+                        timestampInSeconds,
+                        ActivityData.PROVIDER_MIBAND,
+                        intensity,
+                        steps & 0xff,
+                        category);
 
-            activityStruct.activityDataTimestampProgress.add(Calendar.MINUTE, 1);
+                //activityStruct.activityDataTimestampProgress.add(Calendar.MINUTE, 1);
+                timestampInSeconds += 60;
+                minutes++;
+            }
         }
-
-        activityStruct.activityDataHolderProgress = 0;
+        finally{
+            activityStruct.bufferFlushed(minutes);
+        }
+        //activityStruct.activityDataHolderProgress = 0;
     }
 
     private void sendAckDataTransfer(Calendar time, int bytesTransferred) {
         byte[] ackTime = MiBandDateConverter.calendarToRawBytes(time);
+
+        //Uncomment to ACK
+        /*
         byte[] ackChecksum = new byte[]{
                 (byte) (bytesTransferred & 0xff),
                 (byte) (0xff & (bytesTransferred >> 8))
+        };
+        */
+        byte[] ackChecksum = new byte[]{
+                (byte) (~bytesTransferred & 0xff),
+                (byte) (0xff & (~bytesTransferred >> 8))
         };
 
         byte[] ack = new byte[]{
@@ -642,7 +662,7 @@ public class BTCommandManager {
                 list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
 
                 BLETask task2 = new BLETask(list2);
-                queueTask(task2);
+
 
                 //Set to High Latency again
                 final List<BLEAction> list3 = new ArrayList<>();
@@ -650,14 +670,15 @@ public class BTCommandManager {
 
                 BLETask task3 = new BLETask(list3);
                 queueTask(task3);
+                queueTask(task2);
 
-                activityStruct = null;
+                handleActivityFetchFinish();
                 onSuccess("sync complete");
             }
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
             onFail(333, "Unable to send ack to MI");
-            Log.e(TAG,"Unable to send ack to MI");
+            Log.e(TAG, "Unable to send ack to MI");
         }
     }
 }
