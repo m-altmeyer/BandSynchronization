@@ -31,6 +31,7 @@ public class BTCommandManager {
 
     private ActionCallback currentCallback;
 
+    private boolean deleteAfterSynch =false;
 
     private ActionCallback currentSynchCallback;
     private QueueConsumer mQueueConsumer;
@@ -62,6 +63,14 @@ public class BTCommandManager {
 
     public void queueTask(final BLETask task) {
         mQueueConsumer.add(task);
+    }
+
+    public void setDeleteAfterSynch(boolean delete){
+        this.deleteAfterSynch=delete;
+    }
+
+    public boolean isDeleteAfterSynch(){
+        return this.deleteAfterSynch;
     }
 
     public QueueConsumer getmQueueConsumer() {
@@ -635,17 +644,18 @@ public class BTCommandManager {
     private void sendAckDataTransfer(Calendar time, int bytesTransferred) {
         byte[] ackTime = MiBandDateConverter.calendarToRawBytes(time);
 
-        //Uncomment to ACK
-        /*
-        byte[] ackChecksum = new byte[]{
-                (byte) (bytesTransferred & 0xff),
-                (byte) (0xff & (bytesTransferred >> 8))
-        };
-        */
         byte[] ackChecksum = new byte[]{
                 (byte) (~bytesTransferred & 0xff),
                 (byte) (0xff & (~bytesTransferred >> 8))
         };
+
+        if (this.isDeleteAfterSynch()){
+            ackChecksum = new byte[]{
+                (byte) (bytesTransferred & 0xff),
+                (byte) (0xff & (bytesTransferred >> 8))
+            };
+        }
+
 
         byte[] ack = new byte[]{
                 Protocol.COMMAND_CONFIRM_ACTIVITY_DATA_TRANSFER_COMPLETE,
@@ -671,10 +681,14 @@ public class BTCommandManager {
             //The last data chunk sent by the miband has always length 0.
             //When we ack this chunk, the transfer is done.
             if (bytesTransferred == 0) {
-                //Do not ACK synchronization (data remains on Device)
                 final List<BLEAction> list2 = new ArrayList<>();
-                list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
                 BLETask task2 = new BLETask(list2);
+                if (!this.isDeleteAfterSynch()){
+                    Log.d(TAG,"!NOT DELETING DATA!");
+                    //Do not ACK synchronization (data remains on Device)
+                    list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
+                    task2 = new BLETask(list2);
+                }
 
                 //Set to High Latency again
                 final List<BLEAction> list3 = new ArrayList<>();
@@ -682,7 +696,9 @@ public class BTCommandManager {
 
                 BLETask task3 = new BLETask(list3);
                 queueTask(task3);
-                queueTask(task2);
+                if (!this.isDeleteAfterSynch()) {
+                    queueTask(task2);
+                }
 
                 handleActivityFetchFinish();
                 onSuccess("sync complete");

@@ -40,6 +40,7 @@ public class MiBand {
     private ActionCallback connectionCallback;
     private ActionCallback currentSynchCallback;
     private DeviceInfo mDeviceInfo;
+    private UserInfo user;
 
     public MiBand(final Context context, final String address) {
         MiBand.context = context;
@@ -107,7 +108,26 @@ public class MiBand {
                                     @Override
                                     public void onFail(int errorCode, String msg) {
                                         Log.e(TAG, "Error setting Date: " + msg);
-                                        disconnect();
+                                        //User Info not set, wait some time
+                                        Log.d(TAG, "WAIT... ");
+                                        Thread thread=new Thread(){
+                                            @Override
+                                            public void run(){
+                                                try {
+                                                    synchronized(this){
+                                                        wait(8000);
+                                                        disconnect();
+                                                    }
+                                                }
+                                                catch(InterruptedException ex){
+                                                }
+                                            }
+                                        };
+
+                                        thread.start();
+                                        synchronized(thread){
+                                            thread.notifyAll();
+                                        }
                                     }
                                 });
                             }
@@ -264,9 +284,14 @@ public class MiBand {
      * Synchronized data directly is stored in the internal sqlite db
      */
     public void startListeningSync(final ActionCallback actionCallback) {
+        startListeningSync(actionCallback,false);
+    }
+
+    public void startListeningSync(final ActionCallback actionCallback, final boolean deleteAfterSynch) {
         checkConnection();
         btConnectionManager.enableSynchronization(true);
         this.io.setSynchFail(false);
+        this.io.setDeleteAfterSynch(deleteAfterSynch);
         currentlySynching = true;
         Log.d(TAG, "Synching running....");
         currentSynchCallback = actionCallback;
@@ -744,6 +769,8 @@ public class MiBand {
         if (userInfo == null) {
             userInfo = UserInfo.getDefault(getAddress(), mDeviceInfo);
         }
+
+        this.user=userInfo;
 
         final List<BLEAction> list = new ArrayList<>();
         list.add(new WriteAction(Profile.UUID_CHAR_USER_INFO, userInfo.getData(), callback));
