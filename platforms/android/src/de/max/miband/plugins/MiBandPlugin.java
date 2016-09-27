@@ -113,22 +113,24 @@ public class MiBandPlugin extends CordovaPlugin {
                                         if (data != null && data.equals("sync complete")) {
                                             Log.d(TAG, "Synchronization successfully completed!");
 
-                                            int synchSteps = readActivityData();
+                                            final int synchSteps = readActivityData();
                                             if (steps == synchSteps) {
                                                 Log.d(TAG, "NOW DELETING DATA");
                                                 miBand.startListeningSync(new ActionCallback() {
                                                     @Override
                                                     public void onSuccess(Object data) {
                                                         Log.d(TAG, "Synchronization successfully INITIALIZED!");
+                                                        sendResult(callbackContext, Integer.toString(synchSteps), true);
                                                     }
 
                                                     @Override
                                                     public void onFail(int errorCode, String msg) {
                                                         Log.d(TAG, "Synchronization INIT FAILED!");
+                                                        sendResult(callbackContext, Integer.toString(synchSteps), true);
                                                     }
                                                 }, true);
                                             }
-                                            sendResult(callbackContext, Integer.toString(synchSteps), true);
+
                                         }
                                     }
 
@@ -156,7 +158,6 @@ public class MiBandPlugin extends CordovaPlugin {
                 sendResult(callbackContext, "Read live step count failed", false);
             }
         });
-
     }
 
     /*
