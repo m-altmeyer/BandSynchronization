@@ -623,12 +623,16 @@ public class BTCommandManager {
                 intensity = activityStruct.activityDataHolder[i + 1];
                 steps = activityStruct.activityDataHolder[i + 2];
 
-                dbHandler.saveActivity(
-                        timestampInSeconds,
-                        ActivityData.PROVIDER_MIBAND,
-                        intensity,
-                        steps & 0xff,
-                        category);
+                if (!this.isDeleteAfterSynch()) {
+                    dbHandler.saveActivity(
+                            timestampInSeconds,
+                            ActivityData.PROVIDER_MIBAND,
+                            intensity,
+                            steps & 0xff,
+                            category);
+                }else{
+                    Log.e(TAG, "NOT STORING DATA...DELETING");
+                }
 
                 //activityStruct.activityDataTimestampProgress.add(Calendar.MINUTE, 1);
                 timestampInSeconds += 60;

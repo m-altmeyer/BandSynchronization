@@ -97,21 +97,66 @@ public class MiBandPlugin extends CordovaPlugin {
 
 
     private void synchronizeMiBand(final MiBand miBand, final CallbackContext callbackContext){
-        miBand.startListeningSync(new ActionCallback() {
+        miBand.readCurrentStepCount(new ActionCallback() {
             @Override
             public void onSuccess(Object data) {
-                if (data != null && data.equals("sync complete")) {
-                    Log.d(TAG, "Synchronization successfully completed!");
-                    sendResult(callbackContext, Integer.toString(readActivityData()), true);
+                final int steps = (int) data;
+                Thread thread=new Thread(){
+                    @Override
+                    public void run(){
+                        try {
+                            synchronized(this){
+                                wait(3000);
+                                miBand.startListeningSync(new ActionCallback() {
+                                    @Override
+                                    public void onSuccess(Object data) {
+                                        if (data != null && data.equals("sync complete")) {
+                                            Log.d(TAG, "Synchronization successfully completed!");
+
+                                            int synchSteps = readActivityData();
+                                            if (steps == synchSteps) {
+                                                Log.d(TAG, "NOW DELETING DATA");
+                                                miBand.startListeningSync(new ActionCallback() {
+                                                    @Override
+                                                    public void onSuccess(Object data) {
+                                                        Log.d(TAG, "Synchronization successfully INITIALIZED!");
+                                                    }
+
+                                                    @Override
+                                                    public void onFail(int errorCode, String msg) {
+                                                        Log.d(TAG, "Synchronization INIT FAILED!");
+                                                    }
+                                                }, true);
+                                            }
+                                            sendResult(callbackContext, Integer.toString(synchSteps), true);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onFail(int errorCode, String msg) {
+                                        Log.d(TAG, "Synchronization Failed!: " + msg);
+                                        sendResult(callbackContext, "Synchronization Failed: " + msg, false);
+                                    }
+                                });
+                            }
+                        }
+                        catch(InterruptedException ex){
+                        }
+                    }
+                };
+
+                thread.start();
+                synchronized(thread){
+                    thread.notifyAll();
                 }
             }
 
             @Override
             public void onFail(int errorCode, String msg) {
-                Log.d(TAG, "Synchronization Failed!: " + msg);
-                sendResult(callbackContext, "Synchronization Failed: "+ msg, false);
+                sendResult(callbackContext, "Read live step count failed", false);
             }
         });
+
     }
 
     /*
