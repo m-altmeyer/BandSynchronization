@@ -444,7 +444,7 @@ public class BTCommandManager {
             activityStruct = new ActivityStruct(3 * 60 * 4);
         }
 
-        if (!this.synchFail && !(activityStruct==null)) {
+        if (!this.synchFail) {
             if (value.length == 11) {
                 handleActivityMetadata(value);
             } else {
@@ -455,6 +455,7 @@ public class BTCommandManager {
                 sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
                 //GB.updateTransferNotification("", false, 100, getContext());
             }
+
         /*
         } finally {
             if (activityStruct != null && !synchFail) {
@@ -630,6 +631,9 @@ public class BTCommandManager {
                 timestampInSeconds += 60;
                 minutes++;
             }
+        }
+        catch (Exception e){
+            e.printStackTrace();
         }
         finally{
             if (activityStruct != null) {
