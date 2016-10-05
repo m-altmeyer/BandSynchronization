@@ -306,6 +306,7 @@ public class BTCommandManager {
 
     public void onFail(int errorCode, String msg) {
         this.synchFail = true;
+        handleActivityFetchFinish();
         if (this.currentCallback != null) {
             ActionCallback callback = this.currentCallback;
             this.currentCallback = null;
@@ -438,38 +439,22 @@ public class BTCommandManager {
     private ActivityStruct activityStruct;
 
     public void handleActivityNotif(byte[] value) {
-        boolean firstChunk = activityStruct == null;
+        boolean firstChunk = activityStruct == null && !this.synchFail;
         if (firstChunk) {
             activityStruct = new ActivityStruct(3 * 60 * 4);
         }
 
-        if (value.length == 11) {
-            handleActivityMetadata(value);
-        } else {
-            bufferActivityData(value);
-        }
+        if (!this.synchFail) {
+            if (value.length == 11) {
+                handleActivityMetadata(value);
+            } else {
+                bufferActivityData(value);
+            }
 
-        if (activityStruct.isBlockFinished()) {
-            sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
-            //GB.updateTransferNotification("", false, 100, getContext());
-        }
-
-        if (synchFail){
-            final List<BLEAction> list2 = new ArrayList<>();
-            list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
-            BLETask task2 = new BLETask(list2);
-
-            //Set to High Latency again
-            final List<BLEAction> list3 = new ArrayList<>();
-            list3.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, getHighLatency()));
-
-            BLETask task3 = new BLETask(list3);
-            queueTask(task3);
-            queueTask(task2);
-
-            Log.e(TAG, "SYNCHO STOPPED AND NOT COMPLETED");
-            activityStruct = null;
-        }
+            if (activityStruct.isBlockFinished()) {
+                sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
+                //GB.updateTransferNotification("", false, 100, getContext());
+            }
         /*
         } finally {
             if (activityStruct != null && !synchFail) {
@@ -495,6 +480,16 @@ public class BTCommandManager {
 
         //Log.d(TAG, "activity data: length: " + value.length + ", remaining bytes: " + activityStruct.activityDataRemainingBytes);
         */
+
+        }else{
+            final List<BLEAction> list2 = new ArrayList<>();
+            list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
+            BLETask task2 = new BLETask(list2);
+            queueTask(task2);
+
+            Log.e(TAG, "SYNCHO STOPPED AND NOT COMPLETED");
+            activityStruct = null;
+        }
     }
 
 
@@ -582,16 +577,16 @@ public class BTCommandManager {
                 Log.e(TAG, "GOT UNEXPECTED ACTIVITY DATA WITH LENGTH: " + value.length + ", EXPECTED LENGTH: " + activityStruct.activityDataRemainingBytes);
             }
         } else {
+            handleActivityFetchFinish();
             Log.e(TAG, "error buffering activity data: remaining bytes: " + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
             try {
-
                 final List<BLEAction> list = new ArrayList<>();
                 list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
                 final BLETask task = new BLETask(list);
                 queueTask(task);
 
                 onFail(333, "error buffering activity data: remaining bytes:" + activityStruct.activityDataRemainingBytes + ", received: " + value.length);
-                handleActivityFetchFinish();
+
             } catch (Exception e) {
                 onFail(333, "error stopping activity sync");
                 Log.e(TAG, "error stopping activity sync", e);
@@ -600,7 +595,7 @@ public class BTCommandManager {
         }
     }
 
-    private void handleActivityFetchFinish() throws IOException {
+    private void handleActivityFetchFinish() {
         Log.d(TAG, "Fetching activity data has finished.");
         activityStruct = null;
     }

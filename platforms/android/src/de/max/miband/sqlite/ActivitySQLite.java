@@ -48,7 +48,7 @@ public class ActivitySQLite {
         currentDate.setTimeInMillis(System.currentTimeMillis());
 
 
-        if (stepDate.before(currentDate)){
+        //if (stepDate.before(currentDate) || true){
             Log.d(TAG, "DATE::::::::::::"+DateUtils.convertString(stepDate)+" before "+DateUtils.convertString(currentDate));
             MasterSQLiteHelper helperDB = new MasterSQLiteHelper(context);
             SQLiteDatabase db = helperDB.getWritableDatabase();
@@ -76,10 +76,10 @@ public class ActivitySQLite {
                 db.close();
                 return false;
             }
-        }else{
+        /*}else{
             Log.d(TAG, "ERROR! NOT INSERTED STEPS::::::::::::"+timestamp+"("+(System.currentTimeMillis()/1000)+")");
             return false;
-        }
+        }*/
     }
 
     public ArrayList<ActivityData> getSleepSamples(long timestamp_from, long timestamp_to) {
