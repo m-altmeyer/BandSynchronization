@@ -444,7 +444,7 @@ public class BTCommandManager {
             activityStruct = new ActivityStruct(3 * 60 * 4);
         }
 
-        if (!this.synchFail) {
+        if (!this.synchFail && !(activityStruct==null)) {
             if (value.length == 11) {
                 handleActivityMetadata(value);
             } else {
