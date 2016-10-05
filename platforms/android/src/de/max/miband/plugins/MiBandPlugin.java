@@ -97,6 +97,24 @@ public class MiBandPlugin extends CordovaPlugin {
 
 
     private void synchronizeMiBand(final MiBand miBand, final CallbackContext callbackContext){
+        miBand.startListeningSync(new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                if (data != null && data.equals("sync complete")) {
+                    Log.d(TAG, "Synchronization successfully completed!");
+
+                    int synchSteps = readActivityData();
+                    sendResult(callbackContext, Integer.toString(synchSteps), true);
+                }
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                Log.d(TAG, "Synchronization Failed!: " + msg);
+                sendResult(callbackContext, "Synchronization Failed: " + msg, false);
+            }
+        });
+        /*
         miBand.readCurrentStepCount(new ActionCallback() {
             @Override
             public void onSuccess(Object data) {
@@ -113,24 +131,22 @@ public class MiBandPlugin extends CordovaPlugin {
                                         if (data != null && data.equals("sync complete")) {
                                             Log.d(TAG, "Synchronization successfully completed!");
 
-                                            final int synchSteps = readActivityData();
-                                            if (steps == synchSteps) {
+                                            int synchSteps = readActivityData();
+                                                if (steps == synchSteps) {
                                                 Log.d(TAG, "NOW DELETING DATA");
                                                 miBand.startListeningSync(new ActionCallback() {
                                                     @Override
                                                     public void onSuccess(Object data) {
                                                         Log.d(TAG, "Synchronization successfully INITIALIZED!");
-                                                        sendResult(callbackContext, Integer.toString(synchSteps), true);
                                                     }
 
                                                     @Override
                                                     public void onFail(int errorCode, String msg) {
                                                         Log.d(TAG, "Synchronization INIT FAILED!");
-                                                        sendResult(callbackContext, Integer.toString(synchSteps), true);
                                                     }
                                                 }, true);
                                             }
-
+                                            sendResult(callbackContext, Integer.toString(synchSteps), true);
                                         }
                                     }
 
@@ -157,7 +173,10 @@ public class MiBandPlugin extends CordovaPlugin {
             public void onFail(int errorCode, String msg) {
                 sendResult(callbackContext, "Read live step count failed", false);
             }
+
+
         });
+        */
     }
 
     /*

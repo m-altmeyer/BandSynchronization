@@ -467,7 +467,7 @@ public class BTCommandManager {
             queueTask(task3);
             queueTask(task2);
 
-            Log.d(TAG, "FAIL!!!!!!!!!!!!!!");
+            Log.e(TAG, "SYNCHO STOPPED AND NOT COMPLETED");
             activityStruct = null;
         }
         /*
@@ -623,16 +623,13 @@ public class BTCommandManager {
                 intensity = activityStruct.activityDataHolder[i + 1];
                 steps = activityStruct.activityDataHolder[i + 2];
 
-                if (!this.isDeleteAfterSynch()) {
-                    dbHandler.saveActivity(
-                            timestampInSeconds,
-                            ActivityData.PROVIDER_MIBAND,
-                            intensity,
-                            steps & 0xff,
-                            category);
-                }else{
-                    Log.e(TAG, "NOT STORING DATA...DELETING");
-                }
+                dbHandler.saveActivity(
+                        timestampInSeconds,
+                        ActivityData.PROVIDER_MIBAND,
+                        intensity,
+                        steps & 0xff,
+                        category);
+
 
                 //activityStruct.activityDataTimestampProgress.add(Calendar.MINUTE, 1);
                 timestampInSeconds += 60;
@@ -646,6 +643,7 @@ public class BTCommandManager {
     }
 
     private void sendAckDataTransfer(Calendar time, int bytesTransferred) {
+        this.setDeleteAfterSynch(!this.synchFail);
         byte[] ackTime = MiBandDateConverter.calendarToRawBytes(time);
 
         byte[] ackChecksum = new byte[]{
@@ -692,9 +690,12 @@ public class BTCommandManager {
                     //Do not ACK synchronization (data remains on Device)
                     list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
                     task2 = new BLETask(list2);
+                }else{
+                    Log.d(TAG,"!DELETING DATA!");
                 }
 
                 //Set to High Latency again
+                /*
                 final List<BLEAction> list3 = new ArrayList<>();
                 list3.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, getHighLatency()));
 
@@ -703,7 +704,10 @@ public class BTCommandManager {
                 if (!this.isDeleteAfterSynch()) {
                     queueTask(task2);
                 }
-
+                */
+                if (!this.isDeleteAfterSynch()) {
+                    queueTask(task2);
+                }
                 handleActivityFetchFinish();
                 onSuccess("sync complete");
             }

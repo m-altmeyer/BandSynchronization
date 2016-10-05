@@ -71,7 +71,7 @@ public class MiBand {
                             @Override
                             public void onSuccess(Object data) {
                                 //Set to high Latency Mode
-                                setHighLatency();
+                                setLowLatency();
                                 //Set Current Time
                                 setCurrentTime(new ActionCallback() {
                                     @Override
@@ -284,7 +284,7 @@ public class MiBand {
      * Synchronized data directly is stored in the internal sqlite db
      */
     public void startListeningSync(final ActionCallback actionCallback) {
-        startListeningSync(actionCallback,false);
+        startListeningSync(actionCallback, false);
     }
 
     public void startListeningSync(final ActionCallback actionCallback, final boolean deleteAfterSynch) {
@@ -296,6 +296,39 @@ public class MiBand {
         Log.d(TAG, "Synching running....");
         currentSynchCallback = actionCallback;
 
+        final List<BLEAction> list2 = new ArrayList<>();
+        list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.FETCH_DATA, new ActionCallback() {
+            @Override
+            public void onSuccess(Object data) {
+                actionCallback.onSuccess(data);
+
+                io.setCurrentSynchCallback(new ActionCallback() {
+                    @Override
+                    public void onSuccess(Object data) {
+                        currentlySynching = false;
+                        Log.d(TAG, "Synching stopped.");
+                        currentSynchCallback.onSuccess(data);
+                    }
+
+                    @Override
+                    public void onFail(int errorCode, String msg) {
+                        currentlySynching = false;
+                        currentSynchCallback.onFail(errorCode, msg);
+                        Log.d(TAG, "Synching stopped (ERR).");
+                    }
+                });
+            }
+
+            @Override
+            public void onFail(int errorCode, String msg) {
+                currentlySynching = false;
+                actionCallback.onFail(errorCode, msg);
+                Log.d(TAG, "Synching stopped (ERR).");
+            }
+        }));
+        queue(list2);
+
+        /*
         final List<BLEAction> list = new ArrayList<>();
 
         list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, this.io.getLowLatency(), new ActionCallback() {
@@ -345,6 +378,7 @@ public class MiBand {
         }));
 
         queue(list);
+        */
     }
 
     /**
