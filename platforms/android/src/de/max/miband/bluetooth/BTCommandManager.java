@@ -637,7 +637,9 @@ public class BTCommandManager {
             }
         }
         finally{
-            activityStruct.bufferFlushed(minutes);
+            if (activityStruct != null) {
+                activityStruct.bufferFlushed(minutes);
+            }
         }
         //activityStruct.activityDataHolderProgress = 0;
     }

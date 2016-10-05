@@ -471,10 +471,12 @@ public class BTConnectionManager {
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             Log.d(TAG, "descriptor write: " + descriptor.getUuid());
+            /*
             if (!checkCorrectGattInstance(gatt, "descriptor write")) {
                 gatt.disconnect();
                 return;
             }
+            */
 
             checkWaitingCharacteristic(descriptor.getCharacteristic(), status);
         }
