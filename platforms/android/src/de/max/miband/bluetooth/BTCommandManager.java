@@ -32,8 +32,6 @@ public class BTCommandManager {
 
     private ActionCallback currentCallback;
 
-    private boolean deleteAfterSynch =false;
-
     private ActionCallback currentSynchCallback;
     private QueueConsumer mQueueConsumer;
 
@@ -64,14 +62,6 @@ public class BTCommandManager {
 
     public void queueTask(final BLETask task) {
         mQueueConsumer.add(task);
-    }
-
-    public void setDeleteAfterSynch(boolean delete){
-        this.deleteAfterSynch=delete;
-    }
-
-    public boolean isDeleteAfterSynch(){
-        return this.deleteAfterSynch;
     }
 
     public QueueConsumer getmQueueConsumer() {
@@ -456,33 +446,6 @@ public class BTCommandManager {
                 sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
                 //GB.updateTransferNotification("", false, 100, getContext());
             }
-
-        /*
-        } finally {
-            if (activityStruct != null && !synchFail) {
-                if (activityStruct.isBlockFinished()) {
-                    sendAckDataTransfer(activityStruct.activityDataTimestampToAck, activityStruct.activityDataUntilNextHeader);
-                }
-            } else {
-                final List<BLEAction> list = new ArrayList<>();
-                list.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
-                final BLETask task = new BLETask(list);
-                queueTask(task);
-
-                //Set to High Latency again
-                final List<BLEAction> list3 = new ArrayList<>();
-                list3.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, getHighLatency()));
-
-                BLETask task3 = new BLETask(list3);
-                queueTask(task3);
-
-                Log.e(TAG, "SYNCHO STOPPED AND NOT COMPLETED");
-            }
-        }
-
-        //Log.d(TAG, "activity data: length: " + value.length + ", remaining bytes: " + activityStruct.activityDataRemainingBytes);
-        */
-
         }else{
             final List<BLEAction> list2 = new ArrayList<>();
             list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
@@ -649,7 +612,6 @@ public class BTCommandManager {
     }
 
     private void sendAckDataTransfer(Calendar time, int bytesTransferred) {
-        this.setDeleteAfterSynch(!this.synchFail);
         byte[] ackTime = MiBandDateConverter.calendarToRawBytes(time);
 
         byte[] ackChecksum = new byte[]{

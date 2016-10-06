@@ -284,14 +284,9 @@ public class MiBand {
      * Synchronized data directly is stored in the internal sqlite db
      */
     public void startListeningSync(final ActionCallback actionCallback) {
-        startListeningSync(actionCallback, false);
-    }
-
-    public void startListeningSync(final ActionCallback actionCallback, final boolean deleteAfterSynch) {
         checkConnection();
         btConnectionManager.enableSynchronization(true);
         this.io.setSynchFail(false);
-        this.io.setDeleteAfterSynch(deleteAfterSynch);
         currentlySynching = true;
         Log.d(TAG, "Synching running....");
         currentSynchCallback = actionCallback;
@@ -327,58 +322,6 @@ public class MiBand {
             }
         }));
         queue(list2);
-
-        /*
-        final List<BLEAction> list = new ArrayList<>();
-
-        list.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, this.io.getLowLatency(), new ActionCallback() {
-            @Override
-            public void onSuccess(Object data) {
-                Log.d(TAG, "Set MiBand to Low Latency Mode");
-                currentSynchCallback = actionCallback;
-
-                final List<BLEAction> list2 = new ArrayList<>();
-                list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.FETCH_DATA, new ActionCallback() {
-                    @Override
-                    public void onSuccess(Object data) {
-                        actionCallback.onSuccess(data);
-
-                        io.setCurrentSynchCallback(new ActionCallback() {
-                            @Override
-                            public void onSuccess(Object data) {
-                                currentlySynching = false;
-                                Log.d(TAG, "Synching stopped.");
-                                currentSynchCallback.onSuccess(data);
-                            }
-
-                            @Override
-                            public void onFail(int errorCode, String msg) {
-                                currentlySynching = false;
-                                currentSynchCallback.onFail(errorCode, msg);
-                                Log.d(TAG, "Synching stopped (ERR).");
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onFail(int errorCode, String msg) {
-                        currentlySynching = false;
-                        actionCallback.onFail(errorCode, msg);
-                        Log.d(TAG, "Synching stopped (ERR).");
-                    }
-                }));
-                queue(list2);
-            }
-
-            @Override
-            public void onFail(int errorCode, String msg) {
-                Log.d(TAG, "Setting to Low Latency Mode Failed");
-                actionCallback.onFail(333, "LOW LATENCY FAIL");
-            }
-        }));
-
-        queue(list);
-        */
     }
 
     /**
