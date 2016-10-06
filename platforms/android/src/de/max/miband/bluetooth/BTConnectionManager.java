@@ -311,12 +311,13 @@ public class BTConnectionManager {
     }
 
     public void disconnect() {
-        if (gatt != null) {
+        /*if (gatt != null) {
             gatt.disconnect();
         }
-
+        */
         isConnected = false;
         isConnecting = false;
+        /*
 
         io.getmQueueConsumer().abort();
         if (io.getCurrentSynchCallback()!=null){
@@ -325,6 +326,7 @@ public class BTConnectionManager {
         io.onFail(333, "Connection lost");
 
         connectionCallback.onFail(-1, "disconnected");
+        */
     }
 
     public boolean isConnecting() {
@@ -398,7 +400,6 @@ public class BTConnectionManager {
     }
 
     private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
-
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             //TODO
@@ -411,7 +412,6 @@ public class BTConnectionManager {
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED && !isConnected()) {
                 gatt.discoverServices();
             } else if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_DISCONNECTED) {
-                //toggleNotifications(false);
                 disconnect();
             } else if (status != BluetoothGatt.GATT_SUCCESS) {
                 disconnect();
