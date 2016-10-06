@@ -226,7 +226,8 @@ public class MiBandPlugin extends CordovaPlugin {
                     }
                     else {
                         if (miBand.isConnected()){
-                            sendResult(callbackContext, "Connected to " + miBand.getAddress(), true);
+                            miBand.disconnect();
+                            sendResult(callbackContext, "Disconnected from " + miBand.getAddress(), true);
                         }
 
                     }

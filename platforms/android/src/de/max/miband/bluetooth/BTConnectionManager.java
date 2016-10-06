@@ -310,11 +310,15 @@ public class BTConnectionManager {
         }
     }
 
-    public void disconnect() {
-        /*if (gatt != null) {
+    public void disconnect (boolean disconnectGatt){
+        if (gatt != null && disconnectGatt) {
             gatt.disconnect();
+            gatt=null;
         }
-        */
+        disconnect();
+    }
+
+    public void disconnect() {
         isConnected = false;
         isConnecting = false;
 

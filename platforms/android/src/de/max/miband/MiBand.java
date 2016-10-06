@@ -354,7 +354,7 @@ public class MiBand {
         Log.e(TAG, "Disconnecting Mi Band...");
         if (miBandService != null)
             MiBand.context.stopService(miBandService);
-        btConnectionManager.disconnect();
+        btConnectionManager.disconnect(true);
     }
 
     /**
