@@ -664,25 +664,19 @@ public class BTCommandManager {
                     list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
                     task2 = new BLETask(list2);
                 }else{
-                    Log.d(TAG,"!DELETING DATA!");
+                    Log.d(TAG, "!DELETING DATA!");
                 }
 
-                //Set to High Latency again
-                /*
-                final List<BLEAction> list3 = new ArrayList<>();
-                list3.add(new WriteAction(Profile.UUID_CHAR_LE_PARAMS, getHighLatency()));
-
-                BLETask task3 = new BLETask(list3);
-                queueTask(task3);
-                if (!this.isDeleteAfterSynch()) {
-                    queueTask(task2);
-                }
-                */
                 if (!delete) {
                     queueTask(task2);
                 }
                 handleActivityFetchFinish();
-                onSuccess("sync complete");
+                if (delete){
+                    onSuccess("sync complete");
+                }else{
+                    onFail(333,"Something went wrong");
+                }
+
             }
         } catch (Exception ex) {
             ex.printStackTrace();
