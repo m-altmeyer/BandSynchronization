@@ -317,16 +317,18 @@ public class BTConnectionManager {
         */
         isConnected = false;
         isConnecting = false;
-        /*
 
-        io.getmQueueConsumer().abort();
-        if (io.getCurrentSynchCallback()!=null){
-            io.getCurrentSynchCallback().onFail(333,"Connection lost");
+        try{
+            io.getmQueueConsumer().abort();
+            if (io.getCurrentSynchCallback()!=null){
+                io.getCurrentSynchCallback().onFail(333,"Connection lost");
+            }
+            io.onFail(333, "Connection lost");
+
+            connectionCallback.onFail(-1, "disconnected");
+        }catch (Exception e){
+            e.printStackTrace();
         }
-        io.onFail(333, "Connection lost");
-
-        connectionCallback.onFail(-1, "disconnected");
-        */
     }
 
     public boolean isConnecting() {
