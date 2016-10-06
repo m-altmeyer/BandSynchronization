@@ -94,6 +94,33 @@ public class ActivitySQLite {
         return getActivitiesSample(timestamp_from, timestamp_to, ActivityKind.TYPE_ALL);
     }
 
+
+    /**
+     * Returns the most recent step
+     */
+    public ActivityData getMostRecentActivity() {
+        MasterSQLiteHelper helperDB = new MasterSQLiteHelper(context);
+        SQLiteDatabase db = helperDB.getReadableDatabase();
+
+        ActivityData activity = new ActivityData(0,(byte)0,(byte)0,(byte)0,(byte)0);
+
+        String query = "SELECT  * FROM " + TABLE_NAME + " ORDER BY timestamp DESC LIMIT 1";
+
+        Cursor cursor = db.rawQuery(query, null);
+
+        cursor.moveToFirst();
+
+        while (!cursor.isAfterLast()) {
+            activity=cursorToActivity(cursor);
+            cursor.moveToNext();
+        }
+
+        cursor.close();
+        db.close();
+
+        return activity;
+    }
+
     /**
      * Returns all available activity samples from between the two timestamps (inclusive), of the given
      * provided and type(s).

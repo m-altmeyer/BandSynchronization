@@ -8,6 +8,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import de.max.miband.ActionCallback;
+import de.max.miband.DateUtils;
 import de.max.miband.NotifyListener;
 import de.max.miband.model.Profile;
 import de.max.miband.model.Protocol;
@@ -530,7 +531,6 @@ public class BTCommandManager {
     }
 
     private void handleActivityMetadata(byte[] value) {
-
         if (value.length != 11) {
             return;
         }
@@ -643,6 +643,11 @@ public class BTCommandManager {
         //activityStruct.activityDataHolderProgress = 0;
     }
 
+    private int getMostRecentStep(){
+        //all our data is stored in ActivitySQLite as ActivityData objects
+        return ActivitySQLite.getInstance(context).getMostRecentActivity().getTimestamp();
+    }
+
     private void sendAckDataTransfer(Calendar time, int bytesTransferred) {
         this.setDeleteAfterSynch(!this.synchFail);
         byte[] ackTime = MiBandDateConverter.calendarToRawBytes(time);
@@ -652,7 +657,12 @@ public class BTCommandManager {
                 (byte) (0xff & (~bytesTransferred >> 8))
         };
 
-        if (this.isDeleteAfterSynch()){
+        //Get the most recent inserted step date to check if transmission wen well.
+        int recentTS=getMostRecentStep();
+        Log.d(TAG, "RECENT TS: "+recentTS);
+        Log.d(TAG, "CURRENT TS: "+(int) (System.currentTimeMillis() / 1000));
+        boolean delete=(((int) (System.currentTimeMillis() / 1000))- recentTS) < 125;
+        if (delete){
             ackChecksum = new byte[]{
                 (byte) (bytesTransferred & 0xff),
                 (byte) (0xff & (bytesTransferred >> 8))
@@ -686,7 +696,7 @@ public class BTCommandManager {
             if (bytesTransferred == 0) {
                 final List<BLEAction> list2 = new ArrayList<>();
                 BLETask task2 = new BLETask(list2);
-                if (!this.isDeleteAfterSynch()){
+                if (!delete){
                     Log.d(TAG,"!NOT DELETING DATA!");
                     //Do not ACK synchronization (data remains on Device)
                     list2.add(new WriteAction(Profile.UUID_CHAR_CONTROL_POINT, Protocol.COMMAND_STOP_SYNC_DATA));
@@ -706,7 +716,7 @@ public class BTCommandManager {
                     queueTask(task2);
                 }
                 */
-                if (!this.isDeleteAfterSynch()) {
+                if (!delete) {
                     queueTask(task2);
                 }
                 handleActivityFetchFinish();
