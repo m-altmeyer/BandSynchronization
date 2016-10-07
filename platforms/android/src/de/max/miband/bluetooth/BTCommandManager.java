@@ -49,6 +49,8 @@ public class BTCommandManager {
     }
 
     private boolean synchFail = false;
+    private int receivedChunks=0;
+    private int totalChunks=0;
 
     public BTCommandManager(Context context, BluetoothGatt gatt) {
         this.context = context;
@@ -433,6 +435,7 @@ public class BTCommandManager {
         boolean firstChunk = activityStruct == null && !this.synchFail;
         if (firstChunk) {
             activityStruct = new ActivityStruct(3 * 60 * 4);
+            receivedChunks=0;
         }
 
         if (!this.synchFail) {
@@ -516,7 +519,7 @@ public class BTCommandManager {
         // these chunks are usually 20 bytes long and grouped in blocks
         // after dataUntilNextHeader bytes we will get a new packet of 11 bytes that should be parsed
         // as we just did
-
+        totalChunks=(totalDataToRead/3);
         Log.d(TAG, "total data to read: " + totalDataToRead + " len: " + (totalDataToRead / 3) + " minute(s)");
         Log.d(TAG, "data to read until next header: " + dataUntilNextHeader + " len: " + (dataUntilNextHeader / 3) + " minute(s)");
         Log.d(TAG, "TIMESTAMP: " + DateFormat.getDateTimeInstance().format(timestamp.getTime()) + " magic byte: " + dataUntilNextHeader);
@@ -593,6 +596,7 @@ public class BTCommandManager {
                 //activityStruct.activityDataTimestampProgress.add(Calendar.MINUTE, 1);
                 timestampInSeconds += 60;
                 minutes++;
+                receivedChunks+=1;
             }
         }
         catch (Exception e){
@@ -623,7 +627,8 @@ public class BTCommandManager {
         int recentTS=getMostRecentStep();
         Log.d(TAG, "RECENT TS: "+recentTS);
         Log.d(TAG, "CURRENT TS: "+(int) (System.currentTimeMillis() / 1000));
-        boolean delete=(((int) (System.currentTimeMillis() / 1000))- recentTS) < 125;
+        Log.d(TAG, "RECEIVED CHUNKS: "+receivedChunks+ " / "+totalChunks);
+        boolean delete=(((int) (System.currentTimeMillis() / 1000))- recentTS) < 125 && (receivedChunks==totalChunks);
         if (delete){
             ackChecksum = new byte[]{
                 (byte) (bytesTransferred & 0xff),

@@ -310,6 +310,7 @@ public class BTConnectionManager {
         }
     }
 
+    /*
     public void disconnect (boolean disconnectGatt){
         if (gatt != null && disconnectGatt) {
             gatt.disconnect();
@@ -317,19 +318,22 @@ public class BTConnectionManager {
         }
         disconnect();
     }
+    */
 
     public void disconnect() {
         isConnected = false;
         isConnecting = false;
-
+        if (gatt != null) {
+            gatt.close();
+            gatt=null;
+        }
+        connectionCallback.onFail(-1, "disconnected");
         try{
             io.getmQueueConsumer().abort();
             if (io.getCurrentSynchCallback()!=null){
                 io.getCurrentSynchCallback().onFail(333,"Connection lost");
             }
             io.onFail(333, "Connection lost");
-
-            connectionCallback.onFail(-1, "disconnected");
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -413,7 +417,7 @@ public class BTConnectionManager {
 
             Log.e(TAG, "onConnectionStateChange (2): " + newState);
 
-            BTConnectionManager.this.gatt = gatt;
+            //BTConnectionManager.this.gatt = gatt;
 
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED && !isConnected()) {
                 gatt.discoverServices();

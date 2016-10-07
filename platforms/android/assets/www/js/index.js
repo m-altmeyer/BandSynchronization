@@ -84,7 +84,22 @@ var connected=false;
 var out="";
 var steps=0;
 
+window.setInterval(function(){
+updateConnection();}, 2000);
+
+function updateConnection(){
+    if (out.startsWith("Disconnected")){connected=false;}
+
+    if (connected){
+        document.getElementById("connectionStatus").innerHTML="<b style='color:green'>VERBUNDEN MIT MI BAND</b>";
+    }else{
+        document.getElementById("connectionStatus").innerHTML="<b style='color:red'>NICHT VERBUNDEN</b>";
+    }
+}
+
 function updateView(){
+    if (out.startsWith("Disconnected")){connected=false;}
+
     if (connected){
         document.getElementById("connectionStatus").innerHTML="<b style='color:green'>VERBUNDEN MIT MI BAND</b>";
     }else{
@@ -127,7 +142,7 @@ function connect(){
         setLoading(false);
     }, function(error){
         connected=false;
-        out =error.msg;
+        out=error.msg;
         updateView();
         setLoading(false);
     });
