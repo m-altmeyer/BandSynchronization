@@ -88,7 +88,7 @@ window.setInterval(function(){
 updateConnection();}, 2000);
 
 function updateConnection(){
-    if (out.startsWith("Disconnected")){connected=false;}
+    if (out.indexOf("Disconnected")>-1){connected=false;}
 
     if (connected){
         document.getElementById("connectionStatus").innerHTML="<b style='color:green'>VERBUNDEN MIT MI BAND</b>";
@@ -98,7 +98,7 @@ function updateConnection(){
 }
 
 function updateView(){
-    if (out.startsWith("Disconnected")){connected=false;}
+    if (out.indexOf("Disconnected")>-1){connected=false;}
 
     if (connected){
         document.getElementById("connectionStatus").innerHTML="<b style='color:green'>VERBUNDEN MIT MI BAND</b>";

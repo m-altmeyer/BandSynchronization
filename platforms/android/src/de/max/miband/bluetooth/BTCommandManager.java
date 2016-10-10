@@ -627,6 +627,8 @@ public class BTCommandManager {
         int recentTS=getMostRecentStep();
         Log.d(TAG, "RECENT TS: "+recentTS);
         Log.d(TAG, "CURRENT TS: "+(int) (System.currentTimeMillis() / 1000));
+
+
         Log.d(TAG, "RECEIVED CHUNKS: "+receivedChunks+ " / "+totalChunks);
         boolean delete=(((int) (System.currentTimeMillis() / 1000))- recentTS) < 125 && (receivedChunks==totalChunks);
         if (delete){
@@ -635,7 +637,6 @@ public class BTCommandManager {
                 (byte) (0xff & (bytesTransferred >> 8))
             };
         }
-
 
         byte[] ack = new byte[]{
                 Protocol.COMMAND_CONFIRM_ACTIVITY_DATA_TRANSFER_COMPLETE,
